@@ -41,24 +41,46 @@ class Product(models.Model):
         
         return self.name
     
- # Assuming you have a Product model
 
 class Cart(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+     user = models.ForeignKey(User, on_delete=models.CASCADE)
+     created_at = models.DateTimeField(auto_now_add=True)
 
-    def total_price(self):
+     def total_price(self):
         return sum(item.product.price * item.quantity for item in self.items.all())
-
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+     quantity = models.PositiveIntegerField(default=1)
 
-    def product_total(self):
+     def product_total(self):
         return self.product.price * self.quantity
     
 
-from django.contrib.auth.models import User
+from django.shortcuts import render, get_object_or_404
+from .models import Product
+
+def product_detail(request, product_id):
+    # Fetch the product by its ID
+    product = get_object_or_404(Product, id=product_id)
+    
+    # Pass the product to the template for rendering
+    context = {
+        'product': product,
+    }
+    return render(request, 'product_detail.html', context)
+
 from django.db import models
+from django.contrib.auth.models import User
+
+class DeliveryAddress(models.Model):  # Renamed from Address to DeliveryAddress
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    house_no = models.CharField(max_length=50)
+    address = models.CharField(max_length=255)
+    place = models.CharField(max_length=100)
+    pin = models.CharField(max_length=10)
+
+    def __str__(self):
+        return f"{self.name}, {self.address}"
 

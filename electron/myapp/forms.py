@@ -56,11 +56,11 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ['name', 'description', 'price', 'stock', 'image', 'category']
-
+# forms.py
 from django import forms
-from .models import Address
+from .models import DeliveryAddress
 
-class AddressForm(forms.ModelForm):
+class DeliveryAddressForm(forms.ModelForm):
     class Meta:
-        model = Address
-        fields = ['street', 'city', 'zip_code']
+        model = DeliveryAddress
+        fields = ['name', 'house_no', 'address', 'place', 'pin']

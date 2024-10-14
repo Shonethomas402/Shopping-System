@@ -203,25 +203,28 @@ def subscribe_newsletter(request):
     return render(request, 'newsletter_subscribe.html')
 
 def add_to_cart(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
+     product = get_object_or_404(Product, id=product_id)
 
-    # Get the user's carts
-    carts = Cart.objects.filter(user=request.user)
+     # Get the user's carts
+     carts = Cart.objects.filter(user=request.user)
 
-    # Check if the user has more than one cart
-    if carts.exists():
-        cart = carts.first()  # You can decide how to handle multiple carts (here just taking the first one)
-    else:
-        # Create a new cart if none exists
-        cart = Cart.objects.create(user=request.user)
+     # Check if the user has more than one cart
+     if carts.exists():
+         cart = carts.first()  # You can decide how to handle multiple carts (here just taking the first one)
+     else:
+         # Create a new cart if none exists
+         cart = Cart.objects.create(user=request.user)
 
-    # Get or create the cart item
-    cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-    if not created:
-        cart_item.quantity += 1  # Increment quantity if already exists
-    cart_item.save()  # Save the cart item
+     # Get or create the cart item
+     cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+     if not created:
+         cart_item.quantity += 1  # Increment quantity if already exists
+     cart_item.save()  # Save the cart item
 
-    return redirect('view_cart')
+     return redirect('view_cart')
+
+
+
 
 
 def view_cart(request):
@@ -369,45 +372,48 @@ def address(request):
 def switch_account(request):
    return render(request, 'switch_account.html')
 
+from django.shortcuts import render, get_object_or_404
+from .models import Product
+
+def product_detail(request, id):
+    product = get_object_or_404(Product, id=id)
+    
+  
+    return render(request, 'product_detail.html', {'product': product})
+
+# views.py
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Address  # Capitalized model name
-from .forms import AddressForm  # Assuming capitalized form name
-from django.contrib.auth.decorators import login_required
+from .models import DeliveryAddress
+from .forms import DeliveryAddressForm  # Ensure you have a form for DeliveryAddress
 
-@login_required
-def address_list(request):
-    user_addresses = address.objects.filter(user=request.user)
-    return render(request, 'address.html', {'user_addresses': user_addresses})
+def delivery_address_list(request):
+    addresses = DeliveryAddress.objects.filter(user=request.user)
+    return render(request, 'delivery_address_list.html', {'addresses': addresses})
 
-@login_required
-def add_address(request):
+def add_delivery_address(request):
     if request.method == 'POST':
-        form = AddressForm(request.POST)
+        form = DeliveryAddressForm(request.POST)
         if form.is_valid():
-            new_address = form.save(commit=False)
-            new_address.user = request.user
-            new_address.save()
-            return redirect('address_list')
+            delivery_address = form.save(commit=False)
+            delivery_address.user = request.user  # Associate the address with the logged-in user
+            delivery_address.save()
+            return redirect('delivery_address_list')  # Redirect to the list of addresses
     else:
-        form = AddressForm()
-    return render(request, 'add_address.html', {'form': form})
+        form = DeliveryAddressForm()
+    return render(request, 'add_delivery_address.html', {'form': form})
 
-@login_required
-def edit_address(request, address_id):
-    current_address = get_object_or_404(Address, id=address_id, user=request.user)
+def edit_delivery_address(request, address_id):
+    delivery_address = get_object_or_404(DeliveryAddress, id=address_id, user=request.user)
     if request.method == 'POST':
-        form = AddressForm(request.POST, instance=current_address)
+        form = DeliveryAddressForm(request.POST, instance=delivery_address)
         if form.is_valid():
             form.save()
-            return redirect('address_list')
+            return redirect('delivery_address_list')
     else:
-        form = AddressForm(instance=current_address)
-    return render(request, 'edit_address.html', {'form': form})
+        form = DeliveryAddressForm(instance=delivery_address)
+    return render(request, 'edit_delivery_address.html', {'form': form, 'address': delivery_address})
 
-@login_required
-def delete_address(request, address_id):
-    current_address = get_object_or_404(Address, id=address_id, user=request.user)
-    if request.method == 'POST':
-        current_address.delete()
-        return redirect('address_list')
-    return render(request, 'delete_address.html', {'address': current_address})
+def delete_delivery_address(request, address_id):
+    delivery_address = get_object_or_404(DeliveryAddress, id=address_id, user=request.user)
+    delivery_address.delete()
+    return redirect('delivery_address_list')

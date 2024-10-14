@@ -110,9 +110,10 @@
                         <!-- Increase quantity -->
                         <form method="POST" action="{% url 'increase_quantity' item.product.id %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-secondary quantity-btn">+</button>
+                            <button type="submit" class="btn btn-outline-secondary quantity-btn"> {% if item.quantity >= item.product.stock %} disabled {% endif %}>+</button>
                         </form>
                     </div>
+                    <p class="text-muted text-center">Stock available: {{ item.product.stock }}</p>
                 </td>
                 <td>${{ item.product.price }}</td>
                 <td>${{ item.product_total }}</td>

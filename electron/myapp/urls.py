@@ -5,6 +5,7 @@ from .views import admin_dashboard,admin_login,custom_logout
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView
+from .views import delivery_address_list, add_delivery_address, edit_delivery_address, delete_delivery_address
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -36,6 +37,7 @@ urlpatterns = [
     path('products/add/', views.product_add, name='product_add'),
     path('products/edit/<int:pk>/', views.product_edit, name='product_edit'),
     path('products/delete/<int:pk>/', views.product_delete, name='product_delete'),
+    path('product/<int:id>/', views.product_detail, name='product_detail'),
     
     path('subscribe/', views.subscribe_newsletter, name='subscribe_newsletter'),
 
@@ -52,10 +54,10 @@ urlpatterns = [
     path('address/', views.address, name='address'),
     path('switch_account/', views.switch_account, name='switch_account'),
 
-    path('address/', views.address_list, name='address_list'),
-    path('address/add/', views.add_address, name='add_address'),
-    path('address/edit/<int:address_id>/', views.edit_address, name='edit_address'),
-    path('address/delete/<int:address_id>/', views.delete_address, name='delete_address'),
+    path('delivery-addresses/', delivery_address_list, name='delivery_address_list'),
+    path('delivery-addresses/add/', add_delivery_address, name='add_delivery_address'),
+    path('delivery-addresses/edit/<int:address_id>/', edit_delivery_address, name='edit_delivery_address'),
+    path('delivery-addresses/delete/<int:address_id>/', delete_delivery_address, name='delete_delivery_address'),
 
 ] 
 if settings.DEBUG:
