@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container profile-page d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg" style="width: 400px;">
+        <div class="card-body text-center">
+            <h2 class="card-title mb-4">Your Profile</h2>
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <a href="{% url 'orders' %}" class="btn btn-primary btn-block">Your Orders</a>
+                </li>
+                
+                <li class="list-group-item">
+                    <a href="{% url 'address' %}" class="btn btn-secondary btn-block">Address</a>
+                </li>
+                 <li class="list-group-item">
+                    <a href="{% url 'switch_account' %}" class="btn btn-secondary btn-block">Switch Account</a>
+                </li> 
+               
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Profile Page Styling */
+    .profile-page {
+        min-height: 80vh;
+    }
+
+    .card {
+        width: 400px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-body {
+        padding: 30px;
+    }
+
+    .card-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        font-size: 16px;
+        padding: 10px 20px;
+        width: 100%;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        font-size: 16px;
+        padding: 10px 20px;
+        width: 100%;
+        border-radius: 4px;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+    }
+
+    /* List Group Styling */
+    .list-group-item {
+        border: none;
+        padding: 15px 0;
+    }
+
+    .list-group-item + .list-group-item {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}

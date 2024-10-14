@@ -1,0 +1,94 @@
+
+{% block content %}
+<div class="edit-product-container">
+    <h2>Edit Product</h2>
+    
+    <form method="post" enctype="multipart/form-data" class="edit-product-form">
+        {% csrf_token %}
+        
+        <!-- Display the form fields with styled labels and inputs -->
+        <div class="form-group">
+            {{ form.as_p }}
+        </div>
+        
+        <!-- Save changes button -->
+        <div class="form-actions">
+            <button type="submit" class="btn-save">Save changes</button>
+            <a href="{% url 'product_management' %}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Additional styling -->
+<style>
+    .edit-product-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 40px;
+    }
+
+    h2 {
+        color: #35424a;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .edit-product-form .form-group {
+        margin-bottom: 15px;
+    }
+
+    .edit-product-form label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .edit-product-form input, 
+    .edit-product-form textarea, 
+    .edit-product-form select {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+
+    .form-actions {
+        text-align: center;
+    }
+
+    .btn-save {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .btn-save:hover {
+        background-color: #218838;
+    }
+
+    .btn-cancel {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #dc3545;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    .btn-cancel:hover {
+        background-color: #c82333;
+    }
+</style>
+{% endblock %}

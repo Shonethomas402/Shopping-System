@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    {% block title %}User Dashboard - Electronics Shop{% endblock %}
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .navbar {
+            margin-bottom: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-category {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-list {
+            margin-top: 20px;
+        }
+        .product-item {
+            margin-bottom: 30px;
+        }
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .product-card {
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.2s ease-in-out;
+        }
+        .product-card:hover {
+            transform: scale(1.05);
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .order-management, .checkout, .notifications {
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .navbar .dropdown-menu {
+            width: 200px;
+            padding: 10px;
+        }
+
+        .navbar .dropdown-item {
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        .navbar .dropdown-item:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar with Search, Profile, Cart, and Logout -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Electronics Shop</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <form class="form-inline my-2 my-lg-0" action="{% url 'dashboard' %}" method="GET">
+                        <input class="form-control mr-sm-2" type="search" placeholder="Search for products" name="query" aria-label="Search">
+                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                    </form>
+                </li>
+                {% comment %} <li class="nav-item">
+                    <a class="nav-link" href="{% url 'profile' %}">Profile</a>
+                </li> {% endcomment %}
+                <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                    <!-- Other navbar items -->
+                
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Profile
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+                                <a class="dropdown-item" href="{% url 'user_orders' %}">Your Orders</a>
+                                <a class="dropdown-item" href="{% url 'user_address' %}">Address</a>
+                                <a class="dropdown-item" href="{% url 'switch_account' %}">Switch Account</a>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+                
+                
+                <li class="nav-item">
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link">Logout</button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'view_cart' %}">Cart <span class="badge badge-pill badge-primary">{{ cart_items_count }}</span></a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Product Category Section -->
+    <div class="container product-category">
+        <h3>Product Categories</h3>
+        <div class="row text-center">
+            <div class="col-md-2"><a href="{% url 'product_category' 'electronics' %}" class="btn btn-outline-secondary">Electronics</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'laptops' %}" class="btn btn-outline-secondary">Laptops</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'televisions' %}" class="btn btn-outline-secondary">Televisions</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'headsets' %}" class="btn btn-outline-secondary">Headsets</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'phones' %}" class="btn btn-outline-secondary">Phones</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'cameras' %}" class="btn btn-outline-secondary">Cameras</a></div>
+        </div>
+    </div>
+
+    {% comment %} <!-- Product List Section -->
+    <div class="container product-list">
+        {% if search_query %}
+        <h4>Search Results for "{{ search_query }}"</h4>
+        {% else %}
+        <h4>{{ category_name|capfirst }} Products</h4>
+        {% endif %}
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-3 product-item">
+                <div class="card product-card">
+                    <img src="{{ product.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text text-muted">{{ product.description }}</p>
+                        <p class="card-text font-weight-bold">$ {{ product.price }}</p>
+                        <p class="card-text text-success">In Stock: {{ product.stock }}</p>
+                        <form action="{% url 'add_to_cart' product.id %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-block">Add to Cart</button>
+                        </form>
+                        <a href="#" class="btn btn-success btn-block mt-2">Buy Now</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p>No products found matching your search.</p>
+            {% endfor %}
+        </div>
+    </div>
+ {% endcomment %}
+
+ 
+
+{% block content %}
+<!-- User Dashboard Content -->
+<div class="product-list">
+    <!-- Display Products or Search Results -->
+    <h4>{{ category_name|capfirst }} Products</h4>
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-3 product-item">
+            <div class="card">
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text">Price: ${{ product.price }}</p>
+                    <form action="{% url 'add_to_cart' product.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Add to Cart</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+
+    <!-- Order Management Section -->
+    <div class="container order-management">
+        <h3>Your Orders</h3>
+        <table class="table table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.date }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>$ {{ order.total }}</td>
+                    <td>
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-info btn-sm">View</a>
+                        <a href="{% url 'reorder' order.id %}" class="btn btn-warning btn-sm">Reorder</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Notifications Section -->
+    <div class="container notifications">
+        <h3>Manage Notifications</h3>
+        <form method="POST" action="{% url 'subscribe_newsletter' %}">
+            {% csrf_token %}
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" name="subscribe_newsletter" {% if user.is_subscribed %}checked{% endif %}>
+                <label class="form-check-label">Subscribe to Newsletter</label>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Update</button>
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2024 Electronics Shop. All rights reserved.</p>
+    </div>
+
+    <!-- Bootstrap JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>

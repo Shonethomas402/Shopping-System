@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Orders</h2>
+
+    <!-- Search Orders Section -->
+    <form method="GET" class="d-flex justify-content-end mb-3">
+        <input class="form-control me-2" type="search" placeholder="Search all orders" aria-label="Search" name="search">
+        <button class="btn btn-outline-dark" type="submit">Search Orders</button>
+    </form>
+
+    <!-- Tabs for Orders, Buy Again, Cancelled Orders -->
+    <ul class="nav nav-tabs mb-3" id="ordersTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab" aria-controls="orders" aria-selected="true">Orders</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="buy-again-tab" data-bs-toggle="tab" data-bs-target="#buy-again" type="button" role="tab" aria-controls="buy-again" aria-selected="false">Buy Again</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cancelled-orders-tab" data-bs-toggle="tab" data-bs-target="#cancelled-orders" type="button" role="tab" aria-controls="cancelled-orders" aria-selected="false">Cancelled Orders</button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="ordersTabContent">
+        <!-- Orders Tab -->
+        <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+            <div class="order-history">
+                <p>No orders found for the past 3 months.</p>
+                <a href="#" class="btn btn-link">View orders in 2024</a>
+            </div>
+        </div>
+
+        <!-- Buy Again Tab -->
+        <div class="tab-pane fade" id="buy-again" role="tabpanel" aria-labelledby="buy-again-tab">
+            <p>You haven't purchased any products available to buy again.</p>
+        </div>
+
+        <!-- Cancelled Orders Tab -->
+        <div class="tab-pane fade" id="cancelled-orders" role="tabpanel" aria-labelledby="cancelled-orders-tab">
+            <p>No cancelled orders found.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Orders Page Styles */
+    .order-history {
+        border: 1px solid #ddd;
+        padding: 20px;
+        background-color: #f9f9f9;
+        margin-top: 15px;
+    }
+
+    .order-history p {
+        margin-bottom: 10px;
+    }
+
+    .nav-tabs .nav-link {
+        color: #555;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #000;
+        background-color: #e9ecef;
+    }
+</style>
+
+{% endblock %}
+

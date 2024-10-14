@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Electronics Shop{% endblock %}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .navbar {
+            margin-bottom: 20px;
+        }
+        .product-category {
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .product-list {
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar Section -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Electronics Shop</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <form class="form-inline my-2 my-lg-0" action="{% url 'dashboard' %}" method="GET">
+                        <input class="form-control mr-sm-2" type="search" placeholder="Search for products" name="query" aria-label="Search">
+                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                    </form>                    
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="{% url 'profile' %}">Profile</a>
+                </li>
+                <form method="POST" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link">Logout</button>
+                </form>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'view_cart' %}">Cart <span class="badge badge-pill badge-primary">{{ cart_items_count }}</span></a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Product Categories Section -->
+    <div class="container product-category">
+        <h3>Product Categories</h3>
+        <div class="row">
+            <div class="col-md-2"><a href="{% url 'product_category' 'electronics' %}">Electronics</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'laptops' %}">Laptops</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'televisions' %}">Televisions</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'headsets' %}">Headsets</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'phones' %}">Phones</a></div>
+            <div class="col-md-2"><a href="{% url 'product_category' 'cameras' %}">Cameras</a></div>
+        </div>
+    </div>
+
+    <!-- Main Content Block -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer Section -->
+    <div class="footer">
+        <p>&copy; 2024 Electronics Shop. All rights reserved.</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

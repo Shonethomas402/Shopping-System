@@ -1,0 +1,212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+
+    <!-- Embedded CSS -->
+    <style>
+        /* General reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Navbar styling */
+        .navbar {
+            background-color: #35424a;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left .search-bar {
+            padding: 10px;
+            width: 200px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-right a.btn-logout {
+            background-color: #e8491d;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-left: 20px;
+        }
+
+        .navbar-right a.btn-logout:hover {
+            background-color: #c43d1a;
+        }
+
+        /* Sidebar styling */
+        .sidebar {
+            background-color: #333;
+            color: white;
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            padding-top: 20px;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 15px;
+            border-bottom: 1px solid #444;
+            text-align: center;
+        }
+
+        .sidebar a:hover {
+            background-color: #575757;
+        }
+
+        /* Main content styling */
+        .main-content {
+            margin-left: 220px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .main-content h2 {
+            color: #35424a;
+            margin-bottom: 20px;
+        }
+
+        /* Grid layout for the sections */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .grid-item {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .grid-item h3 {
+            margin-bottom: 15px;
+            color: #35424a;
+        }
+
+        .grid-item button {
+            background-color: #e8491d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .grid-item button:hover {
+            background-color: #c43d1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <input type="text" placeholder="Search..." class="search-bar">
+        </div>
+        <div class="navbar-right">
+            Welcome, {{ user.username }} 
+            {% comment %} <a href="{% url 'logout' %}" class="btn-logout">Logout</a> {% endcomment %}
+            <form method="POST" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link">Logout</button>
+            </form>
+            
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <h2>Admin Dashboard</h2>
+        <a href="{% url 'admin_dashboard' %}">Dashboard Overview</a>
+        <a href="#">User Authentication & Authorization</a>
+        <a href="#">User Management</a>
+        <a href="#">Category Management</a>
+        <a href="#">Product Management</a>
+        <a href="#">Order Management</a>
+        <a href="#">Inventory Management</a>
+        <a href="#">Discounts & Coupons</a>
+    </div>
+
+    <div class="main-content">
+        <h2>Dashboard Overview</h2>
+        <div class="grid-container">
+            <div class="grid-item">
+                <h3>User Authentication and Authorization</h3>
+                <button onclick="location.href='{% url 'user_authentication' %}'">Manage Authentication</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Sales Overview</h3>
+                <p>Recent sales, orders, and user activities.</p>
+            </div>
+
+            <div class="grid-item">
+                <h3>User Management</h3>
+                <button onclick="location.href='#'">Manage Users</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Category Management</h3>
+                <button onclick="location.href='#'">Manage Categories</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Product Management</h3>
+                <button onclick="location.href='{% url 'product_management' %}'">Manage Products</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Order Management</h3>
+                <button onclick="location.href='#'">Manage Orders</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Inventory Management</h3>
+                <button onclick="location.href='#'">Manage Inventory</button>
+            </div>
+
+            <div class="grid-item">
+                <h3>Discounts and Coupons</h3>
+                <button onclick="location.href='#'">Manage Discounts</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

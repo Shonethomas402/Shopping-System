@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <style>
+     
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .signup-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .signup-container p {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0 5px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: #1a13a5;
+            outline: none;
+            box-shadow: 0 0 5px rgba(26, 19, 165, 0.3);
+        }
+
+        button {
+            width: 100%;
+            background-color: #1a13a5;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .signup-container a {
+            text-decoration: none;
+            color: #4CAF50;
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        /* Add responsive layout */
+        @media (max-width: 600px) {
+            .signup-container {
+                padding: 20px;
+            }
+
+            button {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Sign Up</h1>
+        <form id="signupForm" method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+            <p>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+                <div class="error-message" id="usernameError"></div>
+            </p>
+            <p>
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <div class="error-message" id="emailError"></div>
+            </p>
+            <p>
+                <label for="password1">Password</label>
+                <input type="password" id="password1" name="password1" required>
+                <div class="error-message" id="password1Error"></div>
+            </p>
+            <p>
+                <label for="password2">Confirm Password</label>
+                <input type="password" id="password2" name="password2" required>
+                <div class="error-message" id="password2Error"></div>
+            </p>
+            <button type="submit">Sign Up</button>
+        </form>
+        <a href="{% url 'login' %}">Already have an account? Sign in</a>
+    </div>
+
+    <script>
+        // Form validation
+        const form = document.getElementById('signupForm');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const password1Input = document.getElementById('password1');
+        const password2Input = document.getElementById('password2');
+
+        // Error messages
+        const usernameError = document.getElementById('usernameError');
+        const emailError = document.getElementById('emailError');
+        const password1Error = document.getElementById('password1Error');
+        const password2Error = document.getElementById('password2Error');
+
+        // Live validation functions
+        function validateUsername() {
+            if (usernameInput.value.length < 5) {
+                usernameError.textContent = 'Username must be at least 5 characters long';
+                return false;
+            } else {
+                usernameError.textContent = '';
+                return true;
+            }
+        }
+
+        function validateEmail() {
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailPattern.test(emailInput.value)) {
+                emailError.textContent = 'Please enter a valid email address';
+                return false;
+            } else {
+                emailError.textContent = '';
+                return true;
+            }
+        }
+
+        function validatePassword() {
+            if (password1Input.value.length < 8) {
+                password1Error.textContent = 'Password must be at least 8 characters long';
+                return false;
+            } else {
+                password1Error.textContent = '';
+                return true;
+            }
+        }
+
+        function validatePasswordMatch() {
+            if (password1Input.value !== password2Input.value) {
+                password2Error.textContent = 'Passwords do not match';
+                return false;
+            } else {
+                password2Error.textContent = '';
+                return true;
+            }
+        }
+
+        // Event listeners for real-time validation
+        usernameInput.addEventListener('input', validateUsername);
+        emailInput.addEventListener('input', validateEmail);
+        password1Input.addEventListener('input', validatePassword);
+        password2Input.addEventListener('input', validatePasswordMatch);
+
+        // Prevent form submission if there are validation errors
+        form.addEventListener('submit', function(event) {
+            if (!validateUsername() || !validateEmail() || !validatePassword() || !validatePasswordMatch()) {
+                event.preventDefault(); // Prevent form submission if validation fails
+            }
+        });
+    </script>
+</body>
+</html>
