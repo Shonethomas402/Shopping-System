@@ -1,0 +1,66 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.coverage
+*.db
+*.sqlite3
+*.mo
+
+# If you are using the WAMP server
+wamp64/
+
+# If you are using MySQL for Django migrations
+*.sql
+*.mysql
+
+# Media files
+# /media/
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+# *.bmp
+# *.svg
+
+# Static files
+# /static/
+
+# Environment variables
+.env
+*.env
+
+# Local settings
+settings_local.py
+
+# VS Code settings (if using VS Code)
+.vscode/
+
+# Virtual environment
+/venv/
+env/
+ENV/
+
+# pipenv
+Pipfile.lock
+
+# pyenv
+.python-version
+
+# IDEs and editors
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
