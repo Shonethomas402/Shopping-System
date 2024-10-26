@@ -1,6 +1,11 @@
 
 {% extends 'base.html' %}
 
+{% block content %}
+
+{% comment %} 
+{% extends 'base.html' %}
+
 
 
 {% block content %}
@@ -35,4 +40,47 @@
         {% endfor %}
     </ul>
 </div>
+{% endblock %} {% endcomment %}
+
+<div class="container mt-5">
+    <h2 class="text-center">Your Delivery Addresses</h2>
+    <div class="text-center mb-4">
+        <a href="{% url 'add_delivery_address' %}" class="btn btn-primary">Add New Address</a>
+    </div>
+    
+    <!-- Address selection form -->
+    <form method="POST" action="{% url 'confirm_order' %}">
+        {% csrf_token %}
+        
+        <div class="mb-4">
+            <label for="address-select" class="form-label">Select an Address:</label>
+            <select id="address-select" name="selected_address" class="form-select" required>
+                <option value="">-- Choose an Address --</option>
+                {% for address in addresses %}
+                    <option value="{{ address.id }}">{{ address.name }}, {{ address.address }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-success">Select Address and Proceed</button>
+        </div>
+    </form>
+
+    <!-- Display of addresses for management -->
+    <ul class="list-group mt-4">
+        {% for address in addresses %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ address.name }}</strong>, {{ address.address }}
+            </div>
+            <div>
+                <a href="{% url 'edit_delivery_address' address.id %}" class="btn btn-warning btn-sm me-2">Edit</a>
+                <a href="{% url 'delete_delivery_address' address.id %}" class="btn btn-danger btn-sm">Delete</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
 {% endblock %}
+

@@ -100,6 +100,9 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data', 
     'social_core.pipeline.user.user_details',          
 )
+# settings.py
+
+
 
 LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
@@ -113,6 +116,9 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+
+RAZORPAY_API_KEY = 'rzp_test_VnpNv6gkEvVCsq'
+RAZORPAY_API_SECRET = 'WiIqhyRWdQdCfOiuaK7F4VVM'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -175,4 +181,4 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')

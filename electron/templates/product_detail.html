@@ -12,8 +12,7 @@
             {% endif %}
         </div>
 
-        <div class="col-md-6">
-            <!-- Product Details -->
+    <div class="col-md-6">
             <h2>{{ product.name }}</h2>
             <p><strong>Description:</strong> {{ product.description }}</p>
             <p><strong>Price:</strong> ${{ product.price }}</p>
@@ -21,7 +20,9 @@
             <p><strong>Category:</strong> {{ product.category.name }}</p>
 
             <!-- Action Buttons -->
+            <div class="d-flex">
             <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary">Add to Cart</a>
+            <a href="{% url 'buy_now' product.id %}" class="btn btn-success">Buy Now</a>
         </div>
     </div>
 </div>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment</title>
+</head>
+<body>
+<div>
+    <h2>Confirm Payment</h2>
+    <ul>
+        {% for item in cart_items %}
+            <li>{{ item.product.name }} - ₹{{ item.product.price }}</li>
+        {% endfor %}
+    </ul>
+    <p>Total: ₹{{ order.total_price }}</p>
+    <form id="payment-form" action="{% url 'payment' %}">
+        <script 
+            src="https://checkout.razorpay.com/v1/checkout.js"
+            data-key="{{ razorpay_key }}"  
+            data-amount="{{ total_price|floatformat:0 }}"  
+            data-currency="INR"
+            data-order_id="{{ payment_order_id }}"  
+            data-buttontext="Pay with Razorpay"
+            data-name="Your Store"
+            data-description="Order Payment"
+            data-theme.color="#F37254">
+        </script>
+    </form>
+</div>
+</body>
+</html>

@@ -61,9 +61,10 @@
                             <ul class="menu-area-main">
                                 <!-- Updated URLs and link names -->
                                 <li class="active"> <a href="{% url 'home' %}">Home</a> </li>
+                                <li><a href="#about">About Us</a></li>
                                 <li><a href="{% url 'register' %}">Register</a></li>
                                 <li><a href="{% url 'login' %}">Login</a></li>
-                                <li><a href="#about">About Us</a></li>
+                            
                             </ul>
                         </nav>
                     </div>
@@ -140,23 +141,32 @@
                             {% if not request.user.is_authenticated %}
                                 <!-- If user is not logged in, redirect to login -->
                                 <a href="{% url 'login' %}">
-                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+                                    {% else %}
+                                        <img src="E:\electro\electron\static\homepage\images\5.png" alt="Default Image" />
+                                    {% endif %}
                                     <h3>$<strong class="red">{{ product.price }}</strong></h3>
                                     <span>{{ product.name }}</span>
-                                    <p>{{ product.description|truncatewords:10 }}</p> <!-- Short description -->
+                                    <p>{{ product.description|truncatewords:10 }}</p>
                                 </a>
                             {% else %}
-                                <!-- If user is logged in, show product details (pointing to product details page) -->
+                                <!-- If user is logged in, show product details -->
                                 <a>
-                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+                                    {% else %}
+                                        <img src="E:\electro\electron\static\homepage\images\5.png" alt="Default Image" />
+                                    {% endif %}
                                     <h3>$<strong class="red">{{ product.price }}</strong></h3>
                                     <span>{{ product.name }}</span>
-                                    <p>{{ product.description|truncatewords:10 }}</p> <!-- Short description -->
+                                    <p>{{ product.description|truncatewords:10 }}</p>
                                 </a>
                             {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
+                {% endfor %}
+                
                     <div class="col-md-12">
                         <a class="read-more" href="{% url 'login' %}">See More</a>
                     </div>

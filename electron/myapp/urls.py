@@ -14,9 +14,9 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('search/', views.search, name='search'),
     path('oauth/', include('social_django.urls', namespace='social')),
-
-    path('dashboard/', views.user_dashboard, name='dashboard'),
-    path('dashboard/category/<str:category>/', views.user_dashboard, name='product_category'),
+    path('dashboard/', views.user_dashboard, name='user_dashboard'),
+   # path('dashboard/', views.user_dashboard, name='dashboard'),
+   # path('dashboard/category/<str:category>/', views.user_dashboard, name='product_category'),
     
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('products/', views.Product_list, name='product_list'),  # Assuming you have a ProductListView
@@ -26,7 +26,7 @@ urlpatterns = [
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('user_authentication/', views.user_authentication, name='user_authentication'),
     path('user_management/', views.user_management, name='user_management'),
-    path('category_management/', views.category_management, name='category_management'),
+    #path('category_management/', views.category_management, name='category_management'),
     path('product_management/', views.product_management, name='product_management'),
     path('order_management/', views.order_management, name='order_management'),
     path('inventory_management/', views.inventory_management, name='inventory_management'),
@@ -39,7 +39,7 @@ urlpatterns = [
     path('products/delete/<int:pk>/', views.product_delete, name='product_delete'),
     path('product/<int:id>/', views.product_detail, name='product_detail'),
     
-    path('subscribe/', views.subscribe_newsletter, name='subscribe_newsletter'),
+    
 
     path('cart/', views.view_cart, name='view_cart'),
     path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
@@ -52,14 +52,44 @@ urlpatterns = [
 
     path('orders/', views.orders, name='orders'),
     path('address/', views.address, name='address'),
-    path('switch_account/', views.switch_account, name='switch_account'),
+   
 
     path('delivery-addresses/', delivery_address_list, name='delivery_address_list'),
     path('delivery-addresses/add/', add_delivery_address, name='add_delivery_address'),
     path('delivery-addresses/edit/<int:address_id>/', edit_delivery_address, name='edit_delivery_address'),
     path('delivery-addresses/delete/<int:address_id>/', delete_delivery_address, name='delete_delivery_address'),
+    path('update_profile/', views.update_profile, name='update_profile'),
 
-] 
+    path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
+    path('user_manage/', views.user_manage, name='user_manage'),
+    path('block_user/<int:user_id>/', views.block_user, name='block_user'),
+    path('unblock_user/<int:user_id>/', views.unblock_user, name='unblock_user'),
+
+
+    path('category/<str:category_name>/', views.product_category, name='product_category'),
+
+
+    #path('category_management/add/', views.add_category, name='add_category'),
+    #path('category_management/edit/<int:category_id>/', views.edit_category, name='edit_category'),
+    #path('category_management/delete/<int:category_id>/', views.delete_category, name='delete_category'),
+    path('category-management/', views.category_management, name='category_management'),
+    #path('category/edit/<int:pk>/', views.edit_category, name='edit_category'),
+    path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
+
+    path('user_dashboard/', views.user_dashboard, name='user_dashboard'),
+    path('confirm-order/', views.confirm_order, name='confirm_order'),           
+    
+    path('checkout/', views.checkout, name='checkout'),
+    path('delivery-addresses/', views.delivery_address_list, name='delivery_address_list'),
+    path('confirm-order/', views.confirm_order, name='confirm_order'),  # After address selection
+    path('payment/', views.payment_response, name='payment'),  # Razorpay payment
+    path('payment-success/', views.payment_success, name='payment_success'),
+    path('payment-failure/', views.payment_failure, name='payment_failure'),
+    path('cart/', views.cart_view, name='cart'),
+
+    path('cart/save_for_later/<int:product_id>/', views.save_for_later, name='save_for_later'),
+    path('cart/move_to_cart/<int:product_id>/', views.move_to_cart, name='move_to_cart'),
+]
 if settings.DEBUG:
-     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+      urlpatterns +=  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
                

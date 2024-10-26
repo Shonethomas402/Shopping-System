@@ -23,7 +23,7 @@
         <p>Your cart is empty.</p>
     {% endif %}
     
-    <form method="POST">
+    <form method="POST" action="{% url 'checkout' %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-success">Proceed to Payment</button>
     </form>

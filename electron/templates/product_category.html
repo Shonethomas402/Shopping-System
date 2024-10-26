@@ -1,0 +1,22 @@
+<div class="container">
+    <h3>Products in {{ category_name }}</h3>
+    <div class="row">
+        {% if products %}
+            {% for product in products %}
+                <div class="col-md-3">
+                    <div class="card">
+                        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text">{{ product.description }}</p>
+                            <p class="card-text">{{ product.price }}</p>
+                            <a href="#" class="btn btn-primary">View Product</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No products available in this category.</p>
+        {% endif %}
+    </div>
+</div>

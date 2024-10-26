@@ -7,8 +7,9 @@
     <title>{% block title %}Electronics Shop{% endblock %}</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        .navbar {
+         .navbar {
             margin-bottom: 20px;
+          
         }
         .product-category {
             margin-top: 30px;
@@ -24,7 +25,9 @@
             padding: 20px 0;
             text-align: center;
             margin-top: 30px;
-        }
+        } 
+       
+
     </style>
 </head>
 <body>
@@ -37,9 +40,11 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <form class="form-inline my-2 my-lg-0" action="{% url 'dashboard' %}" method="GET">
-                        <input class="form-control mr-sm-2" type="search" placeholder="Search for products" name="query" aria-label="Search">
-                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                    {% comment %} <form class="form-inline my-2 my-lg-0" action="{% url 'dashboard' %}" method="GET"> {% endcomment %}
+                        <div class="d-flex">
+                            <input class="form-control me-2" type="search" placeholder="Search for products" name="query" aria-label="Search">
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </div>
                     </form>                    
                 </li>
                  <li class="nav-item">
@@ -52,32 +57,56 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'view_cart' %}">Cart <span class="badge badge-pill badge-primary">{{ cart_items_count }}</span></a>
                 </li>
+               
             </ul>
         </div>
     </nav>
 
-    <!-- Product Categories Section -->
-    <div class="container product-category">
-        <h3>Product Categories</h3>
-        <div class="row">
-            <div class="col-md-2"><a href="{% url 'product_category' 'electronics' %}">Electronics</a></div>
-            <div class="col-md-2"><a href="{% url 'product_category' 'laptops' %}">Laptops</a></div>
-            <div class="col-md-2"><a href="{% url 'product_category' 'televisions' %}">Televisions</a></div>
-            <div class="col-md-2"><a href="{% url 'product_category' 'headsets' %}">Headsets</a></div>
-            <div class="col-md-2"><a href="{% url 'product_category' 'phones' %}">Phones</a></div>
-            <div class="col-md-2"><a href="{% url 'product_category' 'cameras' %}">Cameras</a></div>
-        </div>
-    </div>
-
-    <!-- Main Content Block -->
-    <div class="container">
+     <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Main Content Block -->
+        <div class="container">
         {% block content %}{% endblock %}
     </div>
+    
 
-    <!-- Footer Section -->
-    <div class="footer">
-        <p>&copy; 2024 Electronics Shop. All rights reserved.</p>
+</div>
+<!-- Footer Section -->
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>About Us</h5>
+                <p>We offer the best electronics at unbeatable prices. Your satisfaction is our priority!</p>
+            </div>
+            <div class="col-md-4">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="{% url 'view_cart' %}" class="text-light">Cart</a></li>
+                    <li><a href="{% url 'profile' %}" class="text-light">Profile</a></li>
+                    {% comment %} <li><a href="{% url 'dashboard' %}" class="text-light">Dashboard</a></li> {% endcomment %}
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Follow Us</h5>
+                <a href="#" class="text-light mr-3"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-light mr-3"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-light mr-3"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="text-light"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <p>&copy; 2024 Electronics Shop. All rights reserved.</p>
+        </div>
     </div>
+</footer>
+
+
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>

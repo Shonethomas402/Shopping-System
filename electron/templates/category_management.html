@@ -1,23 +1,19 @@
-
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Management</title>
+    <title>Category Management</title>
 
     <!-- Embedded CSS for styling -->
     <style>
-        /* General reset */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        /* Body styling */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -27,7 +23,6 @@
             flex-direction: column;
         }
 
-        /* Navbar styling */
         .navbar {
             background-color: #35424a;
             color: white;
@@ -58,11 +53,6 @@
             margin-left: 20px;
         }
 
-        .navbar-right a.btn-logout:hover {
-            background-color: #c43d1a;
-        }
-
-        /* Sidebar styling */
         .sidebar {
             background-color: #333;
             color: white;
@@ -88,11 +78,6 @@
             text-align: center;
         }
 
-        .sidebar a:hover {
-            background-color: #575757;
-        }
-
-        /* Main content styling */
         .main-content {
             margin-left: 220px;
             padding: 20px;
@@ -104,7 +89,6 @@
             margin-bottom: 20px;
         }
 
-        /* Table styling */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -122,11 +106,6 @@
             text-align: left;
         }
 
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        /* Button styling */
         .btn {
             display: inline-block;
             padding: 10px 15px;
@@ -140,18 +119,6 @@
             background-color: #28a745;
         }
 
-        .btn-add:hover {
-            background-color: #218838;
-        }
-
-        .btn-edit {
-            background-color: #007bff;
-        }
-
-        .btn-edit:hover {
-            background-color: #0069d9;
-        }
-
         .btn-delete {
             background-color: #dc3545;
         }
@@ -160,12 +127,15 @@
             background-color: #c82333;
         }
 
-        /* Image styling */
-        .product-image {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
+        .form-control {
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #ddd;
             border-radius: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -183,55 +153,63 @@
     <div class="sidebar">
         <h2>Admin Dashboard</h2>
         <a href="{% url 'admin_dashboard' %}">Dashboard Overview</a>
-        <a href="{% url 'user_authentication' %}">User Authentication & Authorization</a>
-        <a href="{% url 'user_management' %}">User Management</a>
         <a href="{% url 'category_management' %}">Category Management</a>
         <a href="{% url 'product_management' %}">Product Management</a>
         <a href="{% url 'order_management' %}">Order Management</a>
         <a href="{% url 'inventory_management' %}">Inventory Management</a>
-        <a href="{% url 'discounts_coupons' %}">Discounts & Coupons</a>
     </div>
 
     <div class="main-content">
-        <h2>Product Management</h2>
-        <a href="{% url 'product_add' %}" class="btn btn-add">Add New Product</a>
-        <table>
+        <h2>Category Management</h2>
+
+        <!-- Display messages (errors or success) -->
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <!-- Form to Add New Category -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'category_management' %}">
+                    {% csrf_token %}
+                    <input type="text" name="name" placeholder="Enter category name" class="form-control" required>
+                    <button type="submit" class="btn btn-add">Add Category</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Existing Categories List -->
+        <h5>Existing Categories</h5>
+        <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Category</th>
-                   
-                    <th>Image</th>
+                    <th>#</th>
+                    <th>Category Name</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for product in products %}
+                {% for category in categories %}
                 <tr>
-                    <td>{{ product.name }}</td>
-                    <td>{{ product.description }}</td>
-                    <td>${{ product.price }}</td>
-                    <td>{{ product.stock }}</td>
-                    <td>{{ product.category.name }}</td>
-                  
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ category.name }}</td>
                     <td>
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
-                        {% else %}
-                            No image available
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'product_edit' product.pk %}" class="btn btn-edit">Edit</a>
-                        <a href="{% url 'product_delete' product.pk %}" class="btn btn-delete">Delete</a>
+                        <form action="{% url 'delete_category' category.pk %}" method="POST" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-delete">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" style="text-align: center;">No products available.</td>
+                    <td colspan="3" class="text-center">No categories available.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block content %}
+<body>
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .navbar {
+            margin-bottom: 80px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-category {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-list {
+            margin-top: 20px;
+        }
+        .product-item {
+            margin-bottom: 30px;
+        }
+        .product-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            transition: transform 0.2s ease-in-out;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .product-card:hover {
+            transform: scale(1.05);
+        }
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .card-body {
+            width: 100%;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .card-text {
+            font-size: 16px;
+            color: #555;
+        }
+        .btn {
+            margin: 5px 0;
+            width: 100%;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .pagination li.page-item {
+            margin: 0 5px;
+        }
+
+        /* Product grid layout for responsiveness */
+        @media (min-width: 992px) {
+            .product-item {
+                flex: 0 0 33.333%;
+                max-width: 33.333%;
+            }
+        }
+        @media (min-width: 768px) {
+            .product-item {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+        @media (max-width: 767px) {
+            .product-item {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</body>
+
+<div class="container product-category">
+    <h3>Product Categories</h3>
+    <div class="row text-center">
+        {% for category in categories %}
+        <div class="col-md-2">
+            <a href="{% url 'product_category' category.name %}" class="btn btn-outline-secondary">
+                {{ category.name }}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title text-center">Update Profile</h4>
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Custom form fields with validation -->
+                        <div class="form-group">
+                            <label for="id_username">Username</label>
+                            <input type="text" id="id_username" name="username" value="{{ form.username.value }}" class="form-control" 
+                                   pattern="[A-Za-z]+" title="Only letters are allowed." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_email">Email</label>
+                            <input type="email" id="id_email" name="email" value="{{ form.email.value }}" class="form-control" 
+                                   required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_location">Location</label>
+                            <input type="text" id="id_location" name="location" value="{{ form.location.value }}" class="form-control" 
+                                   pattern="[A-Za-z]+" title="Only letters are allowed." maxlength="15" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_phone_no">Phone Number</label>
+                            <input type="tel" id="id_phone_no" name="phone_no" value="{{ form.phone_no.value }}" class="form-control" 
+                                   pattern="[789]\d{9}" title="Phone number must start with 7, 8, or 9 and be 10 digits long." required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -110,6 +110,16 @@
                 <div class="error-message" id="emailError"></div>
             </p>
             <p>
+                <label for="phone_number">Phone Number</label>
+                <input type="tel" id="phone_number" name="phone_number" required>
+                <div class="error-message" id="phoneError"></div>
+            </p>
+            <p>
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" required>
+                <div class="error-message" id="locationError"></div>
+            </p>
+            <p>
                 <label for="password1">Password</label>
                 <input type="password" id="password1" name="password1" required>
                 <div class="error-message" id="password1Error"></div>
@@ -129,12 +139,16 @@
         const form = document.getElementById('signupForm');
         const usernameInput = document.getElementById('username');
         const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+        const locationInput = document.getElementById('location');
         const password1Input = document.getElementById('password1');
         const password2Input = document.getElementById('password2');
 
         // Error messages
         const usernameError = document.getElementById('usernameError');
         const emailError = document.getElementById('emailError');
+        const phoneError = document.getElementById('phoneError');
+        const locationError = document.getElementById('locationError');
         const password1Error = document.getElementById('password1Error');
         const password2Error = document.getElementById('password2Error');
 
@@ -159,6 +173,28 @@
                 return true;
             }
         }
+            function validatePhone() {
+                if (phoneInput.value.length !== 10) {
+                    phoneError.textContent = 'Phone number must be 10 digits';
+                    return false;
+                } else {
+                    phoneError.textContent = '';
+                    return true;
+                }
+            }
+            function validateLocation() {
+                if (locationInput.value.length > 15) {
+                    locationError.textContent = 'Location must be no longer than 15 characters';
+                    return false;
+                } else {
+                    locationError.textContent = '';
+                    return true;
+                }
+            }
+    
+           
+    
+        
 
         function validatePassword() {
             if (password1Input.value.length < 8) {
@@ -183,6 +219,8 @@
         // Event listeners for real-time validation
         usernameInput.addEventListener('input', validateUsername);
         emailInput.addEventListener('input', validateEmail);
+        phoneInput.addEventListener('input', validatePhone);
+        locationInput.addEventListener('input', validateLocation);
         password1Input.addEventListener('input', validatePassword);
         password2Input.addEventListener('input', validatePasswordMatch);
 

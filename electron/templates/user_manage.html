@@ -1,0 +1,38 @@
+<!-- manage_users.html -->
+<div class="admin-dashboard">
+    <h2>User Management</h2>
+    <div class="user-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.blocked %}
+                                <span style="color: red;">Blocked</span>
+                            {% else %}
+                                <span style="color: green;">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.blocked %}
+                                <button onclick="location.href='{% url 'unblock_user' user.id %}'">Unblock</button>
+                            {% else %}
+                                <button onclick="location.href='{% url 'block_user' user.id %}'">Block</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

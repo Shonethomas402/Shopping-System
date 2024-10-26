@@ -4,22 +4,38 @@ from django.contrib.auth import authenticate
 from .forms import UserRegistrationForm, UserLoginForm
 from django.contrib.auth.decorators import login_required
 from .models import *
-#from .models import Cart
+from django.db.models import Prefetch
+from django.contrib.auth.models import User
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import UserProfile
+import razorpay
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.conf import settings
+from django.http import JsonResponse
+from decimal import Decimal
+import json
 
-# Home view
+from django.http import JsonResponse
+from django.shortcuts import render
+from .models import Order
 
-# class ProductListView(ListView):
-#     model = Product
-#     template_name = 'product_list.html'
-#     context_object_name = 'products'
+# def home(request):
+#     products = Product.objects.all()
+#     context = {
+#         'products': products,
+#     }
+#     return render(request, 'homepage.html', context)
 
 def home(request):
     products = Product.objects.all()
+    #categories = Category.objects.all()  # Fetching categories
     context = {
         'products': products,
+        #'categories': categories,  # Adding categories to context
     }
     return render(request, 'homepage.html', context)
-
 
 # Add placeholder views for register, login, cart, profile, and search
 def register(request):
@@ -29,6 +45,11 @@ def register(request):
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password1'])  # Hash the password
             user.save()
+            profile = Profile(user=user)
+            profile.location = form.cleaned_data.get('location')
+            profile.phone_no = form.cleaned_data.get('phone_number')
+            print(form.cleaned_data.get('phone_number'))
+            profile.save()
             return redirect('login')
     else:
         form = UserRegistrationForm()
@@ -46,7 +67,7 @@ def login(request):
                 if user.is_superuser:  # If user is admin
                     return redirect('admin_dashboard')  # Admin dashboard
                 else:
-                  return redirect('dashboard')  # Redirect to user dashboard after login
+                  return redirect('user_dashboard')  # Redirect to user dashboard after login
     else:
         form = UserLoginForm()
 
@@ -58,7 +79,22 @@ def logout(request):
     return redirect('login')
 
 def cart(request):
-    return render(request, 'cart.html')  # You'll need a cart template
+    return render(request, 'cart.html') 
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from .models import CartItem
+
+
+def save_for_later(request, product_id):
+    cart_item = CartItem.objects.get(user=request.user, product_id=product_id)
+    cart_item.saved_for_later = True
+    cart_item.save()
+    return redirect('cart')
+def move_to_cart(request, product_id):
+    cart_item = CartItem.objects.get(user=request.user, product_id=product_id)
+    cart_item.saved_for_later = False
+    cart_item.save()
+    return redirect('cart')
 
 def profile(request):
     return render(request, 'profile.html')  # You'll need a profile template
@@ -68,27 +104,51 @@ def search(request):
     # Process the search query
     return render(request, 'search.html', {'query': query})  # You'll need a search template
 
-def user_dashboard(request, category=None):
+
+# from django.shortcuts import render
+# from .models import Product, Category
+
+# def user_dashboard(request):
+#     # products = Product.objects.all()  # Fetch all products
+#     # categories = Category.objects.all()  # Fetch categories if applicable
+#     # category_name = "All Products"  # You can adjust this if you have categories
+    
+#     # context = {
+#     #     'products': products,
+#     #     'categories': categories,
+#     #     'category_name': category_name,
+#     # }
+
+#          products = Product.objects.all()
+#     #categories = Category.objects.all()  # Fetching categories
+#    # context = {
+#        # 'products': products,
+#         #'categories': categories,  # Adding categories to context
+#    # }
+#          return render(request, 'user_dashboard.html', {'products': products} )
+  
+from django.shortcuts import render, redirect
+from .models import Product, Category  # Ensure you import necessary models
+from .forms import UserLoginForm  # Assuming you have a form for login
+
+def user_dashboard(request):
+    # If the user is authenticated, display products on the dashboard
     if request.user.is_authenticated:
-        query = request.GET.get('query')
-        if query:
-            products = Product.objects.filter(name__icontains=query)  # Case-insensitive search for products
-            category_name = f"Search Results for '{query}'"
-        elif category:
-            products = Product.objects.filter(category__name=category)
-            category_name = category
-        else:
-            products = Product.objects.all()
-            category_name = "All"
-        orders = Order.objects.filter(user=request.user)
-        context = {
-            'products': products,
-            'orders': orders,
-            'category_name': category_name,
-        }
-        return render(request, 'user_dashboard.html', context)
-    else:
-        return redirect('login')
+        # Fetch all products
+        products = Product.objects.all()
+        categories = Category.objects.all()
+        # Fetch categories if needed, you can uncomment the next line
+        # categories = Category.objects.all()
+
+        # Render the user dashboard with the products context
+        return render(request, 'user_dashboard.html', {'products': products, 'categories': categories})
+
+    
+
+# In views.py
+from django.shortcuts import render
+
+
 
 
 def Product_list(request):
@@ -139,14 +199,47 @@ def user_management(request):
     users = User.objects.all()  
     return render(request, 'user_authentication.html', {'users': users})
 
-
+# views.py
+from django.shortcuts import render, redirect
+from .models import Category
+from django.http import HttpResponse
 
 def category_management(request):
-    return render(request, 'category_management.html')
+    if request.method == 'POST':
+        # Handle form submission
+        category_name = request.POST.get('name')
+        if category_name:
+            # Create a new category and save to the database
+            Category.objects.create(name=category_name)
+            return redirect('category_management')  # Redirect to the category management page after saving
+
+    # Fetch existing categories to display in the table
+    categories = Category.objects.all()
+    
+    return render(request, 'category_management.html', {'categories': categories})
+
+
+# Delete Category
+# views.py
+from django.shortcuts import get_object_or_404, redirect
+from .models import Category
+
+def delete_category(request, pk):
+    # Get the category object to be deleted
+    category = get_object_or_404(Category, pk=pk)
+
+    # Delete the category
+    category.delete()
+
+    # Redirect back to the category management page
+    return redirect('category_management')
+
+
+
 
 def product_management(request):
-  products = Product.objects.all()
-  return render(request, 'product_management.html' , {'products': products}) 
+   products = Product.objects.all()
+   return render(request, 'product_management.html' , {'products': products}) 
 
 def order_management(request):
     return render(request, 'order_management.html')
@@ -198,9 +291,7 @@ def product_delete(request, pk):
         return redirect('product_management')
     return render(request, 'product_confirm_delete.html', {'product': product})
 
-def subscribe_newsletter(request):
-    # Logic to subscribe to the newsletter
-    return render(request, 'newsletter_subscribe.html')
+
 
 def add_to_cart(request, product_id):
      product = get_object_or_404(Product, id=product_id)
@@ -241,6 +332,9 @@ def view_cart(request):
     total_price = 0
 
     for cart_item in cart_items:
+        available_quantity = min(cart_item.quantity, cart_item.product.stock)
+
+        
         product_total = cart_item.product.price * cart_item.quantity
         products_in_cart.append({
             'product': cart_item.product,
@@ -277,40 +371,33 @@ def remove_from_cart(request, product_id):
     return redirect('view_cart')
 
 def checkout(request):
-    # Get the user's cart; if multiple exist, get the first one
-    cart = Cart.objects.filter(user=request.user).first()
-
-    if cart is None:
-        # Optionally handle the case where the user has no cart
-        return render(request, 'checkout.html', {'error': 'No cart found.'})
-    
-    # Get all items in the cart
-    cart_items = CartItem.objects.filter(cart=cart)
-
-    products_in_cart = []
-    total_price = 0
-
-    # Loop through each cart item to retrieve product details and calculate totals
-    for cart_item in cart_items:
-        product = cart_item.product  # Retrieve the product from the cart item
-        product_total = product.price * cart_item.quantity  # Calculate total for this product
-        products_in_cart.append({
-            'product': product,
-            'quantity': cart_item.quantity,
-            'product_total': product_total
-        })
-        total_price += product_total  # Update total price
 
     if request.method == 'POST':
-        # Handle payment logic here
-        return redirect('payment_success')
+        # Redirect to delivery address selection page
+        return redirect('delivery_address_list')
+    cart_items = CartItem.objects.filter(cart__user=request.user)
+    total_price = sum(item.product.price * item.quantity for item in cart_items)
+    return render(request, 'checkout.html', {'cart_items': cart_items, 'total_price': total_price})
 
-    context = {
-        'cart_items': products_in_cart,
-        'total_price': total_price,
-    }
+
+# # myapp/views.py
+# from django.shortcuts import render, redirect
+# from django.contrib import messages
+
+# def checkout(request):
+#     if request.method == 'POST':
+#         # Redirect to delivery address selection page
+#         return redirect('delivery_address_list')
     
-    return render(request, 'checkout.html', context)
+#     # Fetch cart items and total price for display
+#     cart_items = request.session.get('cart_items', [])
+#     total_price = sum(item['price'] for item in cart_items)  # Assuming each item has a 'price' key
+#     context = {
+#         'cart_items': cart_items,
+#         'total_price': total_price,
+#     }
+#     return render(request, 'checkout.html', context)
+
 
 from django.contrib.auth import logout
 from django.shortcuts import redirect
@@ -323,21 +410,19 @@ def custom_logout(request):
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Product, Cart, CartItem
 
+
 def increase_quantity(request, product_id):
-    # Get the user's cart
+    product = get_object_or_404(Product, id=product_id)
     cart = Cart.objects.filter(user=request.user).first()
-    
-    if not cart:
-        return redirect('view_cart')
+    cart_item = get_object_or_404(CartItem, cart=cart, product=product)
 
-    # Get the cart item for the specified product
-    cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
-
-    # Increase the quantity
-    cart_item.quantity += 1
-    cart_item.save()
+    # Check if adding one more exceeds the stock
+    if cart_item.quantity < product.stock:
+        cart_item.quantity += 1
+        cart_item.save()
 
     return redirect('view_cart')
+
 
 
 def decrease_quantity(request, product_id):
@@ -388,7 +473,29 @@ from .forms import DeliveryAddressForm  # Ensure you have a form for DeliveryAdd
 
 def delivery_address_list(request):
     addresses = DeliveryAddress.objects.filter(user=request.user)
+    if request.method == 'POST':
+        selected_address_id = request.POST.get('selected_address')
+        request.session['selected_address'] = selected_address_id
+        return redirect('confirm_order')
     return render(request, 'delivery_address_list.html', {'addresses': addresses})
+
+
+
+    # if request.method == 'POST':
+    #     selected_address_id = request.POST.get('selected_address')
+    #     if not selected_address_id:
+    #        messages.error(request, "Please select a delivery address.")
+    #     return redirect('delivery_address_list')
+        
+        # Store selected address in the session for later use
+        # request.session['selected_address'] = selected_address_id
+        # return redirect('confirm_order')  # Redirect to order confirmation
+    
+    # context = {
+    #     'addresses': addresses,
+    # }
+
+    # return render(request, 'delivery_address_list.html', {'addresses': addresses})
 
 def add_delivery_address(request):
     if request.method == 'POST':
@@ -403,6 +510,7 @@ def add_delivery_address(request):
     return render(request, 'add_delivery_address.html', {'form': form})
 
 def edit_delivery_address(request, address_id):
+    
     delivery_address = get_object_or_404(DeliveryAddress, id=address_id, user=request.user)
     if request.method == 'POST':
         form = DeliveryAddressForm(request.POST, instance=delivery_address)
@@ -417,3 +525,393 @@ def delete_delivery_address(request, address_id):
     delivery_address = get_object_or_404(DeliveryAddress, id=address_id, user=request.user)
     delivery_address.delete()
     return redirect('delivery_address_list')
+
+def buy_now(request, product_id):
+    # Logic for the "Buy Now" action, such as adding the product to the cart and redirecting to checkout
+    # For now, let's redirect the user to the checkout page
+    return redirect('checkout')
+from .forms import ProfileUpdateForm
+
+@login_required
+def update_profile(request):
+     # Get the profile associated with the current user
+     profile = request.user.profile
+
+     if request.method == 'POST':
+         form = ProfileUpdateForm(request.POST, instance=profile, user=request.user)
+         if form.is_valid():
+             form.save()  # This will save both the User's email and Profile fields
+             return redirect('profile')
+     else:
+         form = ProfileUpdateForm(instance=profile, user=request.user)
+     return render(request, 'update_profile.html', {'form': form})
+
+# views.py
+
+
+@login_required
+def user_manage(request):
+    users = User.objects.all()
+    return render(request, 'user_manage.html', {'users': users})
+
+# @login_required
+# def block_user(request, user_id):
+#     user = User.objects.get(id=user_id)
+#     user.blocked = True
+#     user.save()
+#     return redirect('user_manage')
+
+# @login_required
+# def unblock_user(request, user_id):
+#     user = User.objects.get(id=user_id)
+#     user.blocked = False
+#     user.save()
+#     return redirect('user_manage')
+
+
+def block_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+  
+    user .blocked = True  # Set the blocked field to True
+    user.save()
+    return redirect('user_manage')
+
+@login_required
+def unblock_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+  
+    user.blocked = False  # Set the blocked field to False
+    user.save()
+    return redirect('user_manage')
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from .models import Category
+
+
+def category_management(request):
+    if request.method == 'POST':
+        category_name = request.POST.get('name', '').strip()
+
+        # Validation for characters only
+        if not re.match(r'^[A-Za-z\s]+$', category_name):
+            messages.error(request, 'Category name must contain only letters and spaces.')
+            return redirect('category_management')
+
+        # Check for duplicate category
+        if Category.objects.filter(name__iexact=category_name).exists():
+            messages.error(request, 'Category name already exists.')
+            return redirect('category_management')
+
+        # Create new category if all validations pass
+        new_category = Category(name=category_name)
+        new_category.save()
+        messages.success(request, 'Category added successfully!')
+        return redirect('category_management')
+
+    # Fetch all categories to display in the table
+    categories = Category.objects.all()
+
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'category_management.html', context)
+
+# Delete category function (optional)
+def delete_category(request, category_id):
+    category = Category.objects.get(id=category_id)
+    category.delete()
+    messages.success(request, 'Category deleted successfully!')
+    return redirect('category_management')
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import Category, Product
+
+def product_category(request, category_name):
+    # Fetch the category by its name
+    category = get_object_or_404(Category, name=category_name)
+    # Get all products related to this category
+    products = Product.objects.filter(category=category)
+
+    context = {
+        'category': category,
+        'products': products,
+    }
+    return render(request, 'product_category.html', context)
+
+
+# @login_required
+# def confirm_order(request):
+#     if request.method == 'POST':
+#         address_id = request.POST.get('selected_address')
+#         if not address_id:
+#             messages.error(request, "Please select a delivery address.")
+#             return redirect('delivery_address_list')
+
+#         # Perform order processing logic here, like saving the address ID to the order
+#         # Redirect to payment or order confirmation page
+#         return redirect(reverse('payment_page', kwargs={'address_id': address_id}))
+    
+#     return redirect('delivery_address_list')
+
+# myapp/views.py
+# def confirm_order(request):
+#     selected_address_id = request.session.get('selected_address')
+#     if not selected_address_id:
+#         messages.error(request, "No address selected.")
+#         return redirect('delivery_address_list')
+
+#     # Logic to confirm order or initiate payment using the selected address
+#     # ...
+
+#     return render(request, 'confirm_order.html', {
+#         'address': DeliveryAddress.objects.get(id=selected_address_id)
+#     })
+
+# views.py
+
+
+# def confirm_order(request):
+#     selected_address_id = request.session.get('selected_address')
+#     if not selected_address_id:
+#         return redirect('delivery_address_list')  # Redirect if no address is selected
+
+#     cart_items = request.session.get('cart_items', [])
+#     total_price = sum(item['price'] for item in cart_items) * 100  # Razorpay takes price in paise (1 INR = 100 paise)
+
+#     # Create Razorpay order
+#     client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
+#     payment_order = client.order.create(dict(amount=total_price, currency='INR', payment_capture=1))
+
+#     # Pass necessary data to the payment page
+#     context = {
+#         'cart_items': cart_items,
+#         'total_price': total_price / 100,  # Convert paise to rupees
+#         'payment_order_id': payment_order['id'],
+#         'razorpay_key': settings.RAZORPAY_API_KEY,
+#     }
+    
+#     return render(request, 'payment.html', context)
+
+  # Assuming you have an Order model
+
+
+
+
+# def confirm_order(request):
+#     client = razorpay.Client(auth=("rzp_test_VnpNv6gkEvVCsq", "WiIqhyRWdQdCfOiuaK7F4VVM"))
+
+#     if request.method == 'POST':
+#         order_id = request.POST.get('order_id')
+#         try:
+#             order = Order.objects.get(id=order_id)  # Fetch the order based on ID
+#         except Order.DoesNotExist:
+#             return JsonResponse({'error': 'Order not found'}, status=404)
+
+#         total_price = order.total_price  # total_price is a Decimal
+        
+#         # Convert total_price to int for Razorpay
+#         amount_in_paise = int(total_price * 100)  # Razorpay expects amount in paise
+
+#         try:
+#             # Create the payment order
+#             payment_order = client.order.create({
+#                 'amount': amount_in_paise,  # Amount in paise
+#                 'currency': 'INR',
+#                 'payment_capture': 1
+#             })
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+#         # Return the response as JSON
+#         return JsonResponse(payment_order)
+    
+#     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+# from django.http import HttpResponseBadRequest
+
+# def payment(request):
+#     if request.method == "POST":
+#         # Get payment details from Razorpay
+#         payment_id = request.POST.get('razorpay_payment_id')
+#         order_id = request.POST.get('razorpay_order_id')
+#         signature = request.POST.get('razorpay_signature')
+        
+#         client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
+        
+#         # Verify signature to confirm payment authenticity
+#         try:
+#             params_dict = {
+#                 'razorpay_order_id': order_id,
+#                 'razorpay_payment_id': payment_id,
+#                 'razorpay_signature': signature
+#             }
+#             client.utility.verify_payment_signature(params_dict)
+#             return redirect('payment_success')
+        
+#         except razorpay.errors.SignatureVerificationError:
+#             return redirect('payment_failure')
+    
+#     return HttpResponseBadRequest()
+
+def payment_success(request):
+    return render(request, 'payment_success.html')
+
+def payment_failure(request):
+    return render(request, 'payment_failure.html')
+
+
+import razorpay
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Cart, CartItem, DeliveryAddress, Order, OrderItem
+from django.views.decorators.csrf import csrf_exempt
+
+# Initialize Razorpay client
+client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
+
+@login_required
+def cart_view(request):
+    # cart, created = Cart.objects.get_or_create(user=request.user)
+    # cart_items = cart.items.all()
+    # total_price = sum(item.product.price * item.quantity for item in cart_items)
+    # return render(request, 'cart.html', {'cart_items': cart_items, 'total_price': total_price})
+
+ def cart_view(request):
+    products_in_cart = CartItem.objects.filter(user=request.user, saved_for_later=False)
+    products_saved_for_later = CartItem.objects.filter(user=request.user, saved_for_later=True)
+    
+    total_price = sum(item.item_total for item in products_in_cart)
+
+    context = {
+        'products_in_cart': products_in_cart,
+        'products_saved_for_later': products_saved_for_later,
+        'total_price': total_price,
+    }
+    return render(request, 'cart.html', context)
+@login_required
+def checkout(request):
+    if request.method == 'POST':
+        return redirect('delivery_address_list')
+    cart_items = CartItem.objects.filter(cart__user=request.user)
+    total_price = sum(item.product.price * item.quantity for item in cart_items)
+    return render(request, 'checkout.html', {'cart_items': cart_items, 'total_price': total_price})
+
+
+from django.shortcuts import redirect, render
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+import razorpay
+
+# Initialize Razorpay client
+client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
+
+@login_required
+def confirm_order(request):
+    cart_items = CartItem.objects.filter(cart__user=request.user)
+    selected_address_id = request.session.get('selected_address')
+    
+    # Calculate total price in paise for Razorpay
+    total_price = sum(item.product.price * item.quantity for item in cart_items) * 100  
+    
+    # Create Razorpay Order
+    try:
+        payment_order = client.order.create({
+            'amount': float(total_price),
+            'currency': 'INR',
+            'payment_capture': 1
+        })
+    except razorpay.errors.BadRequestError as e:
+        # Handle error gracefully if Razorpay order creation fails
+        return render(request, 'error.html', {'message': 'Error creating payment order'})
+
+    # Create Order instance
+    order = Order.objects.create(
+        user=request.user,
+        address_id=selected_address_id,
+        total_price=total_price / 100,  # Save as the original amount (not in paise)
+        status='Pending',
+        payment_id=payment_order['id']
+    )
+
+    # Add items to OrderItem
+    for item in cart_items:
+        OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
+
+    # Clear selected address from session after order creation
+    request.session.pop('selected_address', None)
+
+    # Pass data to template
+    context = {
+        'order': order,
+        'cart_items': cart_items,
+        'payment_order_id': payment_order['id'],
+        'razorpay_key': settings.RAZORPAY_API_KEY,
+    }
+    return render(request, 'payment.html', context)
+
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import razorpay
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+@login_required
+def payment_response(request):
+    if request.method == 'POST':
+        # Retrieve necessary Razorpay payment data
+        payment_id = request.POST.get('razorpay_payment_id')
+        order_id = request.POST.get('razorpay_order_id')
+        signature = request.POST.get('razorpay_signature')
+
+        if not all([payment_id, order_id, signature]):
+            logger.error("Missing payment information from Razorpay response.")
+            return redirect('payment_failure')
+
+        try:
+            # Verify the payment signature
+            params = {
+                'razorpay_order_id': order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': signature
+            }
+            client.utility.verify_payment_signature(params)
+            logger.info("Payment signature verified successfully.")
+
+            # Retrieve and update order status to 'Completed'
+            order = get_object_or_404(Order, order_id=order_id)
+            order.status = 'Completed'
+            order.save()
+            logger.info(f"Order {order.id} status updated to 'Completed'.")
+
+            # Clear the user's cart items
+            CartItem.objects.filter(cart__user=request.user).delete()
+            logger.info("Cart cleared after successful payment.")
+
+            return redirect('payment_success')
+
+        except razorpay.errors.SignatureVerificationError as e:
+            logger.error(f"Signature verification failed: {e}")
+            return redirect('payment_failure')
+
+        except Order.DoesNotExist:
+            logger.error(f"Order with payment_id {order_id} not found.")
+            return redirect('payment_failure')
+
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+            return redirect('payment_failure')
+    
+    # If method is not POST, redirect to home or an error page
+    return redirect('user_dashboard')
+
