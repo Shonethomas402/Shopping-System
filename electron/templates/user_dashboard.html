@@ -2,242 +2,6 @@
 {% extends 'base.html' %}
 {% block content %}
 
-{% comment %} {% comment %} {% extends 'base.html' %}
-{% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    {% block title %}Welcome- Electronics Shop{% endblock %}
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    
-    <!-- Custom CSS -->
-    <style>
-        body {
-            background-color: #f0f2f5;
-        }
-        .navbar {
-            margin-bottom: 80px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .product-category {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .product-list {
-            margin-top: 20px;
-        }
-        .product-item {
-            margin-bottom: 30px;
-        }
-        .product-img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            border-radius: 8px;
-            -ms-flex-negative: 0;
-            flex-shrink: 0;
-        }
-        .product-card {
-            width: 100%;
-            height: 250px;
-            border: none;
-            border-radius: 10px;
-            transition: transform 0.2s ease-in-out;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .product-card:hover {
-            transform: scale(1.05);
-        }
-        .product-card .card-body {
-            flex-grow: 1;
-        }
-        .footer {
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 50px;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 30px;
-        }
-        .pagination li.page-item {
-            margin: 0 5px;
-        }
-       
-
-  
-
-    /* Container for product listings */
-    .product-list {
-        margin-top: 20px;
-    }
-    
-    /* Product item - make sure each item is well-aligned in a row */
-    .product-item {
-        margin-bottom: 30px; /* Add space between rows */
-        padding: 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-    
-    /* Product card - ensure the card takes full width */
-    .product-card {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    /* Align the product image */
-    .product-img {
-        width: 100%;
-        max-height: 200px;
-        object-fit: contain;
-    }
-    
-    /* Flex alignment for product buttons */
-    .card-body .d-flex {
-        width: 100%;
-        justify-content: space-between;
-        margin-top: 10px;
-    }
-    
-    /* Ensure three products per row on large screens */
-    @media (min-width: 992px) {
-        .product-item {
-            flex: 0 0 33.333%; /* 3 items per row */
-            max-width: 33.333%;
-        }
-    }
-    
-    /* For medium screens (tablets), two products per row */
-    @media (min-width: 768px) {
-        .product-item {
-            flex: 0 0 50%; /* 2 items per row */
-            max-width: 50%;
-        }
-    }
-    
-    /* For small screens (phones), one product per row */
-    @media (max-width: 767px) {
-        .product-item {
-            flex: 0 0 100%; /* 1 item per row */
-            max-width: 100%;
-        }
-    } 
- </style> 
-</head>
-<body>
-
-    
-
-    <div class="container product-category">
-        <h3>Product Categories</h3>
-        <div class="row text-center">
-            {% for category in categories %}
-            <div class="col-md-2">
-                <a href="{% url 'product_category' category.name %}" class="btn btn-outline-secondary">
-                    {{ category.name }}
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    
-
-
-    
-
- <div class="container product-list">
-    <h4>All Products</h4>
-    <div class="row">
-        {% for product in products %}
-        {% comment %} <div class="col-md-4 product-item">
-            <div class="card product-card"> {% endcomment %}
-                {% comment %} <div class="col-md-4 col-lg-3 product-item">
-                    <div class="card product-card">
-                {% if product.image %}
-                <img src="{{ product.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
-                {% else %}
-                <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ product.name }}</h5>
-                    
-                    <p class="card-text">Price: ${{ product.price }}</p
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'product_detail' product.id %}" class="btn btn-info">View Details</a>
-                        <form action="{% url 'add_to_cart' product.id %}" method="POST">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary">Add to Cart</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    {% if not products %}
-    <div class="alert alert-info" role="alert" style="text-align: center;">
-        No products available.
-    </div>
-    {% endif %}
-</div> 
-
-
- 
-    
-    
-   <!-- Pagination Section -->
-   <div class="pagination">
-    {% if products.has_previous %}
-    <li class="page-item">
-        <a class="page-link" href="?page={{ products.previous_page_number }}">Previous</a>
-    </li>
-    {% endif %}
-    {% for num in products.paginator.page_range %}
-    <li class="page-item {% if products.number == num %}active{% endif %}">
-        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-    </li>
-    {% endfor %}
-    {% if products.has_next %}
-    <li class="page-item">
-        <a class="page-link" href="?page={{ products.next_page_number }}">Next</a>
-    </li>
-    {% endif %}
-</div>
-     
-
-
-    
-
-    <!-- Bootstrap JS, Popper.js, and jQuery -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
-{% endblock %}
-
- {% endcomment %} 
-
 
 
 <!DOCTYPE html>
@@ -251,7 +15,8 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
     <!-- Custom CSS -->
     <style>
         body {
@@ -314,7 +79,7 @@
             width: 100%;
         }
         .footer {
-            background-color: #343a40;
+            background-color: #000;
             color: white;
             padding: 20px 0;
             text-align: center;
@@ -347,6 +112,13 @@
                 max-width: 100%;
             }
         }
+        .wishlist-added {
+            color: red;
+        }
+        .wishlist-not-added {
+            color: gray;
+        }
+
     </style> 
 </head>
 <body>
@@ -364,7 +136,10 @@
         </div>
     </div>
 
+
     <div class="container product-list">
+        {% comment %} <a href="{% url 'view_wishlist' %}">View Wishlist</a> {% endcomment %}
+
         <h4>All Products</h4>
         <div class="row">
             {% for product in products %}
@@ -375,11 +150,37 @@
                     {% else %}
                     <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
                     {% endif %}
+                    
                     <div class="card-body">
                         <h5 class="card-title">{{ product.name }}</h5>
                         <p class="card-text">Price: ${{ product.price }}</p>
+                        
+                        <!-- Wishlist functionality -->
+                        {% if request.user.is_authenticated %}
+                            <div class="wishlist-icon">
+                                {% if product in request.user.wishlist.products.all %}
+                                    <!-- Remove from Wishlist -->
+                                    <form action="{% url 'remove_from_wishlist' product.pk %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link" style="color: red;">
+                                            <i class="fas fa-heart"></i>  <!-- Filled heart icon -->
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <!-- Add to Wishlist -->
+                                    <form action="{% url 'add_to_wishlist' product.pk %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link" style="color: gray;">
+                                            <i class="far fa-heart"></i>  <!-- Outline heart icon -->
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
                         <a href="{% url 'product_detail' product.id %}" class="btn btn-info">View Details</a>
-                        <form action="{% url 'add_to_cart' product.id %}" method="POST">
+                        
+                        <form action="{% url 'add_to_cart' product.id %}" method="POST" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary">Add to Cart</button>
                         </form>
@@ -388,7 +189,9 @@
             </div>
             {% endfor %}
         </div>
-
+    </div>
+   
+    
         {% if not products %}
         <div class="alert alert-info" role="alert" style="text-align: center;">
             No products available.

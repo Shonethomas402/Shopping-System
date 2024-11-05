@@ -87,8 +87,19 @@ urlpatterns = [
     path('payment-failure/', views.payment_failure, name='payment_failure'),
     path('cart/', views.cart_view, name='cart'),
 
-    path('cart/save_for_later/<int:product_id>/', views.save_for_later, name='save_for_later'),
-    path('cart/move_to_cart/<int:product_id>/', views.move_to_cart, name='move_to_cart'),
+    #path('cart/', views.cart, name='cart'),
+    path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
+    path('increase_quantity/<int:product_id>/', views.increase_quantity, name='increase_quantity'),
+    path('decrease_quantity/<int:product_id>/', views.decrease_quantity, name='decrease_quantity'),
+    path('remove_from_cart/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('save_for_later/<int:product_id>/', views.save_for_later, name='save_for_later'),
+     path('saved-for-later/', views.view_saved_items, name='view_saved_items'),  
+    #path('save_for_later_page/', views.save_for_later_page, name='save_for_later_page'),
+    path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/', views.view_wishlist, name='view_wishlist'),
+    path('cart/', views.view_cart, name='view_cart'),
+    path('remove_saved_items/<int:item_id>/', views.remove_saved_items, name='remove_saved_items'),
 ]
 if settings.DEBUG:
       urlpatterns +=  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

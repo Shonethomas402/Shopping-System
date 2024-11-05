@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% load static %}
+<div class="container">
+    <h2>Your Wishlist</h2>
+    <!-- Display messages if any -->
+    {% if messages %}
+        <div class="alert alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="row">
+        {% for item in wishlist_products %}
+        <div class="col-md-4 col-lg-3 product-item">
+            <div class="card product-card">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" class="card-img-top product-img" alt="{{ item.product.name }}">
+                {% else %}
+                <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.product.name }}</h5>
+                    <p class="card-text">Price: ${{ item.product.price }}</p>
+                    
+                   
+                    
+                    <!-- Move to Cart button -->
+                    <form action="{% url 'add_to_cart' item.product.pk %}" method="POST" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Add to Cart</button>
+                    </form> 
+                    
+                    <a href="{% url 'product_detail' item.product.pk %}" class="btn btn-info">View Details</a>
+                     <!-- Remove from Wishlist button -->
+                     <form action="{% url 'remove_from_wishlist' item.product.pk %}" method="POST" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Remove from Wishlist</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>You have no items in your wishlist.</p>
+        {% endfor %}
+    </div>
+    
+    </div>
+</div>
+{% endblock %}

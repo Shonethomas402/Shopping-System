@@ -53,25 +53,45 @@ class Product(models.Model):
 def __str__(self):
         
          return self.name
-    
+
+  
+
 class Cart(models.Model):
-     user = models.ForeignKey(User, on_delete=models.CASCADE)
-     created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-     def total_price(self):
+    def total_price(self):
         return sum(item.product.price * item.quantity for item in self.items.all())
-class CartItem(models.Model):
-     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+# CartItem model with 'saved_for_later' field
+
+
+class CartItems(models.Model):
+
+     cart = models.ForeignKey('Cart', related_name='items', on_delete=models.CASCADE)
+     product = models.ForeignKey('Product', on_delete=models.CASCADE)
      quantity = models.PositiveIntegerField(default=1)
-     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # if cart is user-specific
-     saved_for_later = models.BooleanField(default=False)  # New field to track "saved" status
-
-
      def product_total(self):
-        return self.product.price * self.quantity
-     def item_total(self):
-        return self.quantity * self.product.price 
+         return self.product.price * self.quantity
+
+     def __str__(self):
+         return f"{self.cart.user.username} - {self.product.name}"
+
+# class CartItem(models.Model):
+#     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+#     product = models.ForeignKey('Product', on_delete=models.CASCADE)
+#     quantity = models.PositiveIntegerField(default=1)
+   
+#     def product_total(self):
+#         return self.product.price * self.quantity
+
+#     def item_total(self):
+        
+#         return self.quantity * self.product.price
+class SavedForLaterItem(models.Model):
+      user = models.ForeignKey(User, on_delete=models.CASCADE)
+      product = models.ForeignKey(Product, on_delete=models.CASCADE)
+      saved_date = models.DateTimeField(auto_now_add=True)
+
 
 
 
@@ -104,3 +124,12 @@ class UserProfile(models.Model):
 
     def __str__(self):
          return self.user.username
+class Wishlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'product')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name}"

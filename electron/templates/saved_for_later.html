@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Items Saved for Later</h1>
+    
+    {% if saved_items %}
+        <div class="row">
+            {% for item in saved_items %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <!-- Product Image -->
+                        {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" class="card-img-top" alt="{{ item.product.name }}" style="height: 200px; object-fit: contain;">
+                        {% else %}
+                            <img src="{% static 'default-product-image.jpg' %}" class="card-img-top" alt="No image available" style="height: 200px; object-fit: contain;">
+                        {% endif %}
+                        
+                        <div class="card-body text-center">
+                            <!-- Product Name and Price -->
+                            <h5 class="card-title">{{ item.product.name }}</h5>
+                            <p class="card-text">Price: ${{ item.product.price }}</p>
+                            
+                            <!-- Remove Button -->
+                            <form action="{% url 'remove_saved_items' item.pk %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You have no items saved for later.</p>
+    {% endif %}
+</div>
+{% endblock %}

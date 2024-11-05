@@ -1,243 +1,21 @@
-{% comment %} {% extends 'base.html' %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block title %}Cart - Electronics Shop{% endblock %}
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        /* General Styling */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .cart-container {
-            margin-top: 50px;
-        }
-
-        .cart-header {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 40px;
-        }
-
-        .cart-table {
-            margin-top: 20px;
-        }
-
-        /* Cart item image styling */
-        .cart-item img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        /* Footer to be positioned at the bottom */
-        .footer {
-            margin-top: auto;
-            background-color: #f8f9fa;
-            padding: 15px 0;
-        }
-
-        /* Button Styling */
-        .remove-btn {
-            background-color: red;
-            color: white;
-            border-radius: 5px;
-        }
-
-        .quantity-btn {
-            border-radius: 5px;
-            margin: 0 5px;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .cart-container {
-                margin-top: 30px;
-            }
-
-            .cart-header {
-                font-size: 22px;
-            }
-
-            .cart-table th, .cart-table td {
-                font-size: 14px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-{% block content %}
-<div class="container cart-container">
-    <h2 class="cart-header text-center">Your Shopping Cart</h2>
-
-    <!-- Cart Table -->
-    <table class="table cart-table table-hover text-center">
-        <thead class="thead-light">
-            <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in products_in_cart %}
-            <tr class="cart-item align-middle">
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="margin-right: 15px;">
-                        <p class="mb-0">{{ item.product.name }}</p>
-                    </div>
-                </td>
-                <td>
-                    <div class="d-flex justify-content-center align-items-center">
-                        <!-- Decrease quantity -->
-                        <form method="POST" action="{% url 'decrease_quantity' item.product.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-secondary quantity-btn">-</button>
-                        </form>
-
-                        <!-- Display current quantity -->
-
-                        <input type="number" class="form-control mx-2 text-center" value="{{ item.quantity }}" min="1" readonly style="width: 60px;">
-                        
-                        <!-- Increase quantity -->
-                        <form method="POST" action="{% url 'increase_quantity' item.product.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-secondary quantity-btn"> {% if item.quantity >= item.product.stock %} disabled {% endif %}>+</button>
-                        </form>
-                    </div>
-                    <p class="text-muted text-center">Stock available: {{ item.product.stock }}</p>
-                </td>
-                <td>${{ item.product.price }}</td>
-                <td>${{ item.product_total }}</td>
-                <td>
-                    <form method="POST" action="{% url 'remove_from_cart' item.product.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn remove-btn">Remove</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" class="text-center">Your cart is empty.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- Cart Total and Checkout -->
-    {% if products_in_cart %}
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <h4>Total: ${{ total_price }}</h4>
-        <a href="{% url 'checkout' %}" class="btn btn-success btn-lg">Proceed to Checkout</a>
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
-
-<!-- Footer -->
-<footer class="footer text-center">
-    <div class="container">
-        <p class="mb-0">&copy; 2024 Electronics Shop. All Rights Reserved.</p>
-    </div>
-</footer>
-
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html> {% endcomment %}
-
-
 {% extends 'base.html' %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block title %}Cart - Electronics Shop{% endblock %}
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        /* General Styling */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .cart-container {
-            margin-top: 50px;
-        }
-
-        .cart-header {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 40px;
-        }
-
-        .cart-table {
-            margin-top: 20px;
-        }
-
-        /* Cart item image styling */
-        .cart-item img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        /* Footer to be positioned at the bottom */
-        .footer {
-            margin-top: auto;
-            background-color: #f8f9fa;
-            padding: 15px 0;
-        }
-
-        /* Button Styling */
-        .remove-btn {
-            background-color: red;
-            color: white;
-            border-radius: 5px;
-        }
-
-        .quantity-btn {
-            border-radius: 5px;
-            margin: 0 5px;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .cart-container {
-                margin-top: 30px;
-            }
-
-            .cart-header {
-                font-size: 22px;
-            }
-
-            .cart-table th, .cart-table td {
-                font-size: 14px;
-            }
-        }
-    </style>
-</head>
-<body>
+{% block title %}Cart - Electronics Shop{% endblock %}
 
 {% block content %}
+<!-- At the top of your cart.html -->
+{% if messages %}
+    <div>
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <div class="container cart-container">
     <h2 class="cart-header text-center">Your Shopping Cart</h2>
 
-    <!-- Cart Table -->
     <table class="table cart-table table-hover text-center">
         <thead class="thead-light">
             <tr>
@@ -249,26 +27,21 @@
             </tr>
         </thead>
         <tbody>
-            <!-- Display items that are NOT saved for later -->
             {% for item in products_in_cart %}
-            {% if not item.saved_for_later %}
             <tr class="cart-item align-middle">
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="margin-right: 15px;">
+                        <img src="{{ item.product.image.url|default:'default_image_url' }}" alt="{{ item.product.name }}" style="margin-right: 15px;">
                         <p class="mb-0">{{ item.product.name }}</p>
                     </div>
                 </td>
                 <td>
                     <div class="d-flex justify-content-center align-items-center">
-                        <!-- Decrease quantity -->
                         <form method="POST" action="{% url 'decrease_quantity' item.product.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-secondary quantity-btn">-</button>
                         </form>
-                        <!-- Display current quantity -->
                         <input type="number" class="form-control mx-2 text-center" value="{{ item.quantity }}" min="1" readonly style="width: 60px;">
-                        <!-- Increase quantity -->
                         <form method="POST" action="{% url 'increase_quantity' item.product.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-secondary quantity-btn" {% if item.quantity >= item.product.stock %} disabled {% endif %}>+</button>
@@ -283,66 +56,33 @@
                         {% csrf_token %}
                         <button type="submit" class="btn remove-btn">Remove</button>
                     </form>
-                    <form method="POST" action="{% url 'save_for_later' item.product.id %}">
+               
+                    <form action="{% url 'save_for_later' item.product.pk %}" method="POST" style="display:inline;">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-link">Save for Later</button>
+                        <button type="submit" class="btn btn-warning">Save for Later</button>
                     </form>
+
+                    
                 </td>
-            </tr>
-            {% endif %}
-            {% empty %}
-            <tr>
-                <td colspan="5" class="text-center">Your cart is empty.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <!-- Saved for Later Section -->
-    {% if products_saved_for_later %}
-    <h3 class="mt-5">Saved for Later</h3>
-    <table class="table table-hover text-center">
-        <thead class="thead-light">
-            <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in products_saved_for_later %}
-            <tr class="cart-item align-middle">
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="margin-right: 15px;">
-                        <p class="mb-0">{{ item.product.name }}</p>
-                    </div>
-                </td>
-                <td>${{ item.product.price }}</td>
-                <td>
-                    <form method="POST" action="{% url 'move_to_cart' item.product.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Move to Cart</button>
-                    </form>
-                    <form method="POST" action="{% url 'remove_from_cart' item.product.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn remove-btn">Remove</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    <!-- Cart Total and Checkout -->
-    {% if products_in_cart %}
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <h4>Total: ${{ total_price }}</h4>
-        <a href="{% url 'checkout' %}" class="btn btn-success btn-lg">Proceed to Checkout</a>
+    <!-- Total Cost Section -->
+    <div class="total-cost text-right">
+        <h3>Total Cost: ${{ total_cost }}</h3>
     </div>
-    {% endif %}
+    
+    <!-- Proceed to Checkout Button -->
+    <div class="text-center">
+        <form method="POST" action="{% url 'checkout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Proceed to Checkout</button>
+        </form>
+    </div>
 </div>
+
 {% endblock %}
 
 <!-- Footer -->
