@@ -36,7 +36,7 @@ SECRET_KEY = 'django-insecure-ah83!m78%4te&5_n=2rem)lx8-*coj1$p9i-c@0^6w42=wleun
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'electron.urls'
@@ -123,15 +124,29 @@ RAZORPAY_API_SECRET = 'WiIqhyRWdQdCfOiuaK7F4VVM'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'electro',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'electro',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
+        'NAME': 'electro_dinnerour',
+        'USER': 'electro_dinnerour',
+        'PASSWORD': '53fa7b52f0d207d594c69cf296f0789f7d2846ff',
+        'HOST': 'gjc-v.h.filess.io',
+        'PORT': '3307',
+        'OPTIONS':{
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+   }
 }
 
 
