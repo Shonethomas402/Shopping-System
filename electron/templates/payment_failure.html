@@ -1,4 +1,14 @@
-<div>
-    <h2>Payment Failed</h2>
-    <p>There was an issue with your payment. Please try again.</p>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h2>Payment Failed</h2>
+        <p>Sorry, your payment could not be processed.</p>
+        <p>Please try again or contact customer support if the problem persists.</p>
+    </div>
+    <div class="mt-4">
+        <a href="{% url 'view_cart' %}" class="btn btn-primary">Return to Cart</a>
+    </div>
 </div>
+{% endblock %}

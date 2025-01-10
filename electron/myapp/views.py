@@ -16,6 +16,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from decimal import Decimal
 import json
+import logging
 
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -23,6 +24,13 @@ from .models import Order
 from django.shortcuts import get_object_or_404, redirect
 from .models import Cart, Product
 
+import logging
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.urls import reverse
+from .models import Order, Cart, CartItems, OrderItem
+import razorpay
 
 def home(request):
     products = Product.objects.all()
@@ -288,50 +296,43 @@ def product_delete(request, pk):
 
 
   # Redirect to the cart view or any other page
+@login_required
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    cart, created = Cart.objects.get_or_create(user=request.user)
     
+    # Get or create an active cart for the user
+    cart, created = Cart.objects.get_or_create(user=request.user, is_active=True)
+    
+    # Get or create a cart item for the product
     cart_item, created = CartItems.objects.get_or_create(cart=cart, product=product)
-    if not created:
-        cart_item.quantity += 1  # Increment quantity if item already in cart
+    
+    # Check stock before adding
+    if cart_item.quantity < product.stock:
+        cart_item.quantity += 1
         cart_item.save()
+        messages.success(request, f"{product.name} added to cart successfully!")
+    else:
+        messages.warning(request, f"Sorry, {product.name} is out of stock!")
     
-    return redirect('cart')
+    return redirect('view_cart')
 
+@login_required
 def view_cart(request):
-     # Fetch the first cart associated with the user, or create a new one if none exists
-     cart = Cart.objects.filter(user=request.user).first()
+    cart = Cart.objects.filter(user=request.user, is_active=True).first()
     
-     if not cart:
-         # Optionally create a new cart if the user has none
-         cart = Cart.objects.create(user=request.user)
-    
-     cart_items = CartItems.objects.filter(cart=cart)
-    
+    if not cart:
+        messages.info(request, "Your cart is empty")
+        return render(request, 'cart.html', {'products_in_cart': [], 'total_price': 0})
 
-     products_in_cart = []
-     total_price = 0
+    cart_items = CartItems.objects.filter(cart=cart)
+    total_price = sum(item.product_total() for item in cart_items)
 
-     for cart_item in cart_items:
-         available_quantity = min(cart_item.quantity, cart_item.product.stock)
+    context = {
+        'products_in_cart': cart_items,
+        'total_price': total_price,
+    }
 
-        
-         product_total = cart_item.product.price * cart_item.quantity
-         products_in_cart.append({
-             'product': cart_item.product,
-             'quantity': cart_item.quantity,
-             'product_total': product_total
-         })
-         total_price += product_total
-
-     context = {
-         'products_in_cart': products_in_cart,
-         'total_price': total_price,
-         
-     }
-
-     return render(request, 'cart.html', context)
+    return render(request, 'cart.html', context)
 
 
 
@@ -371,47 +372,95 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 
 def custom_logout(request):
-    logout(request)  # Logs out the user
-    return redirect('home')
+    logout(request)
+    return redirect('login')
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-
-
-
-def increase_quantity(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    cart = Cart.objects.filter(user=request.user).first()
-    cart_item = get_object_or_404(CartItems, cart=cart, product=product)
-
-    # Check if adding one more exceeds the stock
-    if cart_item.quantity < product.stock:
-        cart_item.quantity += 1
-        cart_item.save()
-
-    return redirect('view_cart')
+# from django.shortcuts import render, redirect, get_object_or_404
 
 
 
-def decrease_quantity(request, product_id):
-    # Get the user's cart
-    cart = Cart.objects.filter(user=request.user).first()
+# def increase_quantity(request, product_id):
+#     product = get_object_or_404(Product, id=product_id)
+#     cart = Cart.objects.filter(user=request.user).first()
+#     cart_item = get_object_or_404(CartItems, cart=cart, product=product)
+
+#     # Check if adding one more exceeds the stock
+#     if cart_item.quantity < product.stock:
+#         cart_item.quantity += 1
+#         cart_item.save()
+
+#     return redirect('view_cart')
+
+
+
+# def decrease_quantity(request, product_id):
+#     # Get the user's cart
+#     cart = Cart.objects.filter(user=request.user).first()
     
-    if not cart:
-        return redirect('view_cart')
+#     if not cart:
+#         return redirect('view_cart')
 
-    # Get the cart item for the specified product
-    cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
+#     # Get the cart item for the specified product
+#     cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
 
-    # Decrease the quantity
-    if cart_item.quantity > 1:
-        cart_item.quantity -= 1
-        cart_item.save()
-    else:
-        # Optionally remove the item if quantity reaches 1 and user tries to decrease further
-        cart_item.delete()
+#     # Decrease the quantity
+#     if cart_item.quantity > 1:
+#         cart_item.quantity -= 1
+#         cart_item.save()
+#     else:
+#         # Optionally remove the item if quantity reaches 1 and user tries to decrease further
+#         cart_item.delete()
+
+#     return redirect('view_cart')
+def increase_quantity(request, product_id):
+    try:
+        # Get the user's active cart
+        cart = Cart.objects.filter(user=request.user, is_active=True).first()
+        if not cart:
+            messages.error(request, "No active cart found.")
+            return redirect('view_cart')
+
+        # Get the cart item to increase quantity
+        cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
+
+        # Check stock before increasing
+        if cart_item.quantity < cart_item.product.stock:
+            cart_item.quantity += 1
+            cart_item.save()
+            messages.success(request, "Quantity increased.")
+        else:
+            messages.warning(request, "Not enough stock available.")
+
+    except CartItems.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
 
     return redirect('view_cart')
+def decrease_quantity(request, product_id):
+    try:
+        # Get the user's active cart
+        cart = Cart.objects.filter(user=request.user, is_active=True).first()
+        if not cart:
+            messages.error(request, "No active cart found.")
+            return redirect('view_cart')
+
+        # Get the cart item to decrease quantity
+        cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
+
+        # Decrease the quantity
+        if cart_item.quantity > 1:
+            cart_item.quantity -= 1
+            cart_item.save()
+            messages.success(request, "Quantity decreased.")
+        else:
+            cart_item.delete()
+            messages.success(request, "Item removed from cart.")
+
+    except CartItems.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
+
+    return redirect('view_cart')
+
 
 from django.shortcuts import render
 
@@ -439,12 +488,20 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import DeliveryAddress
 from .forms import DeliveryAddressForm  # Ensure you have a form for DeliveryAddress
 
+@login_required
 def delivery_address_list(request):
     addresses = DeliveryAddress.objects.filter(user=request.user)
+    
     if request.method == 'POST':
         selected_address_id = request.POST.get('selected_address')
+        if not selected_address_id:
+            messages.error(request, "Please select a delivery address")
+            return redirect('delivery_address_list')
+            
+        # Store the selected address ID in session
         request.session['selected_address'] = selected_address_id
-        return redirect('confirm_order')
+        return redirect('confirm_order')  # Redirect to confirm order page
+        
     return render(request, 'delivery_address_list.html', {'addresses': addresses})
 
 
@@ -616,126 +673,170 @@ def cart_view(request):
     }
     return render(request, 'cart.html', context)
 
-@login_required
-def checkout(request):
-    if request.method == 'POST':
-        return redirect('delivery_address_list')
-    cart_items = CartItems.objects.filter(cart__user=request.user)
-    total_price = sum(item.product.price * item.quantity for item in cart_items)
-    return render(request, 'checkout.html', {'cart_items': cart_items, 'total_price': total_price})
-
-
-from django.shortcuts import redirect, render
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-import razorpay
-
-# Initialize Razorpay client
-client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
-
-@login_required
-def confirm_order(request):
-    cart_items = CartItems.objects.filter(cart__user=request.user)
-    selected_address_id = request.session.get('selected_address')
-    
-    # Calculate total price in paise for Razorpay
-    total_price = sum(item.product.price * item.quantity for item in cart_items) * 100  
-    
-    # Create Razorpay Order
-    try:
-        payment_order = client.order.create({
-            'amount': float(total_price),
-            'currency': 'INR',
-            'payment_capture': 1
-        })
-    except razorpay.errors.BadRequestError as e:
-        # Handle error gracefully if Razorpay order creation fails
-        return render(request, 'error.html', {'message': 'Error creating payment order'})
-
-    # Create Order instance
-    order = Order.objects.create(
-        user=request.user,
-        address_id=selected_address_id,
-        total_price=total_price / 100,  # Save as the original amount (not in paise)
-        status='Pending',
-        payment_id=payment_order['id']
-    )
-
-    # Add items to OrderItem
-    for item in cart_items:
-        OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
-
-    # Clear selected address from session after order creation
-    request.session.pop('selected_address', None)
-
-    # Pass data to template
-    context = {
-        'order': order,
-        'cart_items': cart_items,
-        'payment_order_id': payment_order['id'],
-        'razorpay_key': settings.RAZORPAY_API_KEY,
-    }
-    return render(request, 'payment.html', context)
-
-from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-import razorpay
-import logging
-
-# Configure logging
-logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @login_required
 def payment_response(request):
-    if request.method == 'POST':
-        # Retrieve necessary Razorpay payment data
-        payment_id = request.POST.get('razorpay_payment_id')
-        order_id = request.POST.get('razorpay_order_id')
-        signature = request.POST.get('razorpay_signature')
+    try:
+        if request.method == "POST":
+            payment_data = json.loads(request.body)
+            razorpay_payment_id = payment_data.get('razorpay_payment_id')
+            razorpay_order_id = payment_data.get('razorpay_order_id')
+            razorpay_signature = payment_data.get('razorpay_signature')
+            logger.debug(f"Received Razorpay order_id: {razorpay_order_id}")
 
-        if not all([payment_id, order_id, signature]):
-            logger.error("Missing payment information from Razorpay response.")
-            return redirect('payment_failure')
-
-        try:
-            # Verify the payment signature
-            params = {
-                'razorpay_order_id': order_id,
-                'razorpay_payment_id': payment_id,
-                'razorpay_signature': signature
+            # Verify payment signature
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature
             }
-            client.utility.verify_payment_signature(params)
-            logger.info("Payment signature verified successfully.")
+            
+            # Verify the payment signature
+            client.utility.verify_payment_signature(params_dict)
+            
 
-            # Retrieve and update order status to 'Completed'
-            order = get_object_or_404(Order, order_id=order_id)
+            # Get the order and update it
+            order = Order.objects.get(payment_id=razorpay_order_id)
             order.status = 'Completed'
             order.save()
-            logger.info(f"Order {order.id} status updated to 'Completed'.")
+            logger.debug(f"Order {order.id} updated to Completed")
 
-            # Clear the user's cart items
-            CartItems.objects.filter(cart__user=request.user).delete()
-            logger.info("Cart cleared after successful payment.")
+            # Clear the cart only after successful payment
+            cart = Cart.objects.filter(user=request.user, is_active=True).first()
+            if cart:
+                # Update product stock
+                cart_items = CartItems.objects.filter(cart=cart)
+                for item in cart_items:
+                    product = item.product
+                    product.stock -= item.quantity
+                    product.save()
+                   
+                # Deactivate the cart instead of deleting it
+                cart.is_active = False
+                cart.save()
+                logger.debug("Cart deactivated successfully")
 
-            return redirect('payment_success')
+            # Clear session data
+            request.session.pop('selected_address', None)
+            request.session.pop('current_order_id', None)
 
-        except razorpay.errors.SignatureVerificationError as e:
-            logger.error(f"Signature verification failed: {e}")
-            return redirect('payment_failure')
-
-        except Order.DoesNotExist:
-            logger.error(f"Order with payment_id {order_id} not found.")
-            return redirect('payment_failure')
-
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            return redirect('payment_failure')
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment processed successfully',
+                'order_id': order.id
+            })
     
-    # If method is not POST, redirect to home or an error page
-    return redirect('user_dashboard')
+
+    # except json.JSONDecodeError:
+    #     logger.error("Invalid JSON in request body")
+    #     return JsonResponse({
+    #         'status': 'error',
+    #         'message': 'Invalid request data'
+    #     }, status=400)
+
+    # except razorpay.errors.SignatureVerificationError:
+    #     logger.error("Payment signature verification failed")
+    #     return JsonResponse({
+    #         'status': 'error',
+    #         'message': 'Payment verification failed'
+    #     }, status=400)
+
+    # except Order.DoesNotExist:
+    #     logger.error(f"Order not found for payment_id: {razorpay_order_id}")
+    #     return JsonResponse({
+    #         'status': 'error',
+    #         'message': 'Order not found'
+    #     }, status=404)
+
+    except Exception as e:
+        logger.error(f"Error in payment_response: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+@login_required
+def confirm_order(request):
+    try:
+        # Check if address is selected
+        selected_address_id = request.session.get('selected_address')
+        if not selected_address_id:
+            messages.error(request, "Please select a delivery address")
+            return redirect('delivery_address_list')
+
+        # Get active cart items
+        cart = Cart.objects.filter(user=request.user, is_active=True).first()
+        if not cart:
+            messages.error(request, "Your cart is empty")
+            return redirect('view_cart')
+
+        cart_items = CartItems.objects.filter(cart=cart)
+        if not cart_items.exists():
+            messages.error(request, "Your cart is empty")
+            return redirect('view_cart')
+
+        # Calculate total price
+        total_price = sum(item.product.price * item.quantity for item in cart_items)
+        total_price_paise = int(float(total_price) * 100)  # Convert to paise for Razorpay
+
+        # Create Razorpay Order
+        try:
+            payment_order = client.order.create({
+                'amount': total_price_paise,
+                'currency': "INR",
+                'payment_capture': '1'
+            })
+        except Exception as e:
+            logger.error(f"Razorpay order creation failed: {str(e)}")
+            messages.error(request, "Payment gateway error. Please try again.")
+            return redirect('view_cart')
+
+        # Create Order in database
+        order = Order.objects.create(
+            user=request.user,
+            status='Pending',
+            total_price=total_price,
+            payment_id=payment_order['id'],
+            address_id=selected_address_id
+        )
+        logger.debug(f"Order created: {order.id} with payment_id: {order.payment_id}")
+
+        # Create OrderItems
+        for cart_item in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                product=cart_item.product,
+                quantity=cart_item.quantity
+            )
+            request.session['current_order_id'] = order.id
+
+
+        # Prepare context for payment
+        context = {
+            'order': order,
+            'cart_items': cart_items,
+            'total_price': total_price,
+            'razorpay_order_id': payment_order['id'],
+            'razorpay_merchant_key': settings.RAZORPAY_API_KEY,
+            'razorpay_amount': total_price_paise,
+            'callback_url': request.build_absolute_uri(reverse('payment_response')),
+        }
+
+        return render(request, 'payment.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in confirm_order: {str(e)}")
+        messages.error(request, "An error occurred while processing your order")
+        return redirect('view_cart')
+
+
+
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -763,17 +864,10 @@ def remove_from_wishlist(request, product_id):
         messages.error(request, 'No such product in your wishlist.')
     return redirect('view_wishlist')  # Change 'wishlist' to your actual wishlist URL name
 
-# @login_required
-# def view_wishlist(request):
-#     # Get the products in the user's wishlist
-#     wishlist_products = Product.objects.filter(wishlist__user=request.user)
-#     context = {
-#         'wishlist_products': wishlist_products,
-#     }
-#     return render(request, 'wishlist.html', context)
   
 def view_wishlist(request):
     # Retrieve wishlist items for the logged-in user
+    
     wishlist_products = Wishlist.objects.filter(user=request.user).select_related('product')
     # Pass the wishlist items to the template
     return render(request, 'wishlist.html', {'wishlist_products': wishlist_products})

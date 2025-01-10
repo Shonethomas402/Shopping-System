@@ -100,6 +100,16 @@ urlpatterns = [
     path('wishlist/', views.view_wishlist, name='view_wishlist'),
     path('cart/', views.view_cart, name='view_cart'),
     path('remove_saved_items/<int:item_id>/', views.remove_saved_items, name='remove_saved_items'),
+
+    path('delivery-address/', views.delivery_address_list, name='delivery_address_list'),
+    path('confirm-order/', views.confirm_order, name='confirm_order'),
+    path('payment/response/', views.payment_response, name='payment_response'),
+    path('payment/success/', views.payment_success, name='payment_success'),
+    path('payment/failure/', views.payment_failure, name='payment_failure'),
+    path('logout/', custom_logout, name='logout'),
+
+
+
 ]
 if settings.DEBUG:
       urlpatterns +=  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

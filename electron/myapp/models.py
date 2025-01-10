@@ -57,12 +57,13 @@ def __str__(self):
   
 
 class Cart(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carts')
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)  # Add this field to track active carts
 
-    def total_price(self):
-        return sum(item.product.price * item.quantity for item in self.items.all())
-# CartItem model with 'saved_for_later' field
+    # def total_price(self):
+    #     return sum(item.product.price * item.quantity for item in self.items.all())
+
 
 
 class CartItems(models.Model):
@@ -73,20 +74,10 @@ class CartItems(models.Model):
      def product_total(self):
          return self.product.price * self.quantity
 
-     def __str__(self):
-         return f"{self.cart.user.username} - {self.product.name}"
+    #  def __str__(self):
+    #      return f"{self.cart.user.username} - {self.product.name}"
 
-# class CartItem(models.Model):
-#     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-#     product = models.ForeignKey('Product', on_delete=models.CASCADE)
-#     quantity = models.PositiveIntegerField(default=1)
-   
-#     def product_total(self):
-#         return self.product.price * self.quantity
 
-#     def item_total(self):
-        
-#         return self.quantity * self.product.price
 class SavedForLaterItem(models.Model):
       user = models.ForeignKey(User, on_delete=models.CASCADE)
       product = models.ForeignKey(Product, on_delete=models.CASCADE)

@@ -102,6 +102,31 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',          
 )
 # settings.py
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'myapp': {  # Replace 'myapp' with your app name
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
 
 
 
@@ -121,33 +146,33 @@ SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 RAZORPAY_API_KEY = 'rzp_test_VnpNv6gkEvVCsq'
 RAZORPAY_API_SECRET = 'WiIqhyRWdQdCfOiuaK7F4VVM'
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'electro',
-#         'USER': 'root',
-#         'PASSWORD': '',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#     }
-# }
+#Database
+#https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'electro_dinnerour',
-        'USER': 'electro_dinnerour',
-        'PASSWORD': '53fa7b52f0d207d594c69cf296f0789f7d2846ff',
-        'HOST': 'gjc-v.h.filess.io',
-        'PORT': '3307',
-        'OPTIONS':{
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-   }
+        'NAME': 'electro',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'electro_dinnerour',
+#         'USER': 'electro_dinnerour',
+#         'PASSWORD': '53fa7b52f0d207d594c69cf296f0789f7d2846ff',
+#         'HOST': 'gjc-v.h.filess.io',
+#         'PORT': '3307',
+#         'OPTIONS':{
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#    }
+# }
 
 
 # Password validation
