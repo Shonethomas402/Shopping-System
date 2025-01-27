@@ -1,0 +1,32 @@
+[
+    {
+        "model": "chatbot.chatbotresponse",
+        "pk": 1,
+        "fields": {
+            "query": "hello",
+            "response": "Hi! How can I help you today?",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "chatbot.chatbotresponse",
+        "pk": 2,
+        "fields": {
+            "query": "products",
+            "response": "We offer a wide range of electronic products. You can browse our catalog or let me know what specific type of product you're looking for.",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "chatbot.chatbotresponse",
+        "pk": 3,
+        "fields": {
+            "query": "shipping",
+            "response": "We offer free shipping on orders above ₹500. Standard delivery takes 3-5 business days.",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    }
+] 

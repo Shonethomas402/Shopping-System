@@ -1,227 +1,97 @@
-
 {% extends 'base.html' %}
+
+
+{% load static %}
+
+{% block title %}Welcome - Electronics Shop{% endblock %}
+
 {% block content %}
-
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    {% block title %}Welcome- Electronics Shop{% endblock %}
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-
-    <!-- Custom CSS -->
-    <style>
-        body {
-            background-color: #f0f2f5;
-        }
-        .navbar {
-            margin-bottom: 80px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .product-category {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .product-list {
-            margin-top: 20px;
-        }
-        .product-item {
-            margin-bottom: 30px;
-        }
-        .product-card {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            transition: transform 0.2s ease-in-out;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .product-card:hover {
-            transform: scale(1.05);
-        }
-        .product-img {
-            width: 100%;
-            height: 200px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-        .card-body {
-            width: 100%;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .card-text {
-            font-size: 16px;
-            color: #555;
-        }
-        .btn {
-            margin: 5px 0;
-            width: 100%;
-        }
-        .footer {
-            background-color: #000;
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 50px;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 30px;
-        }
-        .pagination li.page-item {
-            margin: 0 5px;
-        }
-
-        /* Product grid layout for responsiveness */
-        @media (min-width: 992px) {
-            .product-item {
-                flex: 0 0 33.333%;
-                max-width: 33.333%;
-            }
-        }
-        @media (min-width: 768px) {
-            .product-item {
-                flex: 0 0 50%;
-                max-width: 50%;
-            }
-        }
-        @media (max-width: 767px) {
-            .product-item {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-        }
-        .wishlist-added {
-            color: red;
-        }
-        .wishlist-not-added {
-            color: gray;
-        }
-
-    </style> 
-</head>
-<body>
-
-    <div class="container product-category">
-        <h3>Product Categories</h3>
-        <div class="row text-center">
-            {% for category in categories %}
-            <div class="col-md-2">
-                <a href="{% url 'product_category' category.name %}" class="btn btn-outline-secondary">
+<div style="padding-top:90px;background-color:#f8f9fa">
+    <div style="padding:20px;max-width:1200px;margin:0 auto">
+        <div style="background:#fff;padding:20px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin-bottom:25px">
+            <h3 style="font-size:22px;color:#333;margin-bottom:15px;padding-left:10px">Product Categories</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;padding:0 10px;justify-content:center">
+                {% for category in categories %}
+                <a href="{% url 'product_category' category.name %}" 
+                   style="display:inline-block;
+                          padding:8px 20px;
+                          background:#fff;
+                          border:1.5px solid #3498db;
+                          color:#3498db;
+                          border-radius:25px;
+                          transition:all 0.3s ease;
+                          font-weight:500;
+                          font-size:14px;
+                          text-decoration:none;
+                          text-align:center;
+                          min-width:fit-content;
+                          margin:0" 
+                   onmouseover="this.style.background='#3498db';
+                              this.style.color='#fff';
+                              this.style.transform='translateY(-2px)';
+                              this.style.boxShadow='0 4px 8px rgba(52,152,219,0.2)'" 
+                   onmouseout="this.style.background='#fff';
+                             this.style.color='#3498db';
+                             this.style.transform='translateY(0)';
+                             this.style.boxShadow='none'">
                     {{ category.name }}
                 </a>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
 
-
-    <div class="container product-list">
-        {% comment %} <a href="{% url 'view_wishlist' %}">View Wishlist</a> {% endcomment %}
-
-        <h4>All Products</h4>
-        <div class="row">
-            {% for product in products %}
-            <div class="col-md-4 col-lg-3 product-item">
-                <div class="card product-card">
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
-                    {% else %}
-                    <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
-                    {% endif %}
-                    
-                    <div class="card-body">
-                        <h5 class="card-title">{{ product.name }}</h5>
-                        <p class="card-text">Price: ${{ product.price }}</p>
-                        
-                        <!-- Wishlist functionality -->
-                        {% if request.user.is_authenticated %}
-                            <div class="wishlist-icon">
-                                {% if product in request.user.wishlist.products.all %}
-                                    <!-- Remove from Wishlist -->
-                                    <form action="{% url 'remove_from_wishlist' product.pk %}" method="POST" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-link" style="color: red;">
-                                            <i class="fas fa-heart"></i>  <!-- Filled heart icon -->
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <!-- Add to Wishlist -->
-                                    <form action="{% url 'add_to_wishlist' product.pk %}" method="POST" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-link" style="color: gray;">
-                                            <i class="far fa-heart"></i>  <!-- Outline heart icon -->
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </div>
+        <div style="margin-top:30px">
+            <h4 style="font-size:22px;color:#333;margin-bottom:25px">All Products</h4>
+            <div style="display:flex;flex-wrap:wrap;margin:-15px">
+                {% for product in products %}
+                <div style="padding:15px;width:100%;max-width:300px;flex:0 0 calc(25% - 30px);margin:15px">
+                    <div style="position:relative;background:#fff;border-radius:15px;overflow:hidden;height:400px;display:flex;flex-direction:column;box-shadow:0 4px 15px rgba(0,0,0,0.1);transition:transform 0.3s ease,box-shadow 0.3s ease" onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" style="width:100%;height:200px;object-fit:contain;padding:15px;background:#fff" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="{% static 'images/default-product-image.jpg' %}" style="width:100%;height:200px;object-fit:contain;padding:15px;background:#fff" alt="No image">
                         {% endif %}
                         
-                        <a href="{% url 'product_detail' product.id %}" class="btn btn-info">View Details</a>
-                        
-                        <form action="{% url 'add_to_cart' product.id %}" method="POST" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary">Add to Cart</button>
-                        </form>
+                        {% if request.user.is_authenticated %}
+                        <div style="position:absolute;top:10px;right:10px;z-index:2">
+                            {% if product.id in user_wishlist_products %}
+                            <form action="{% url 'remove_from_wishlist' product.pk %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" style="background:rgba(255,255,255,0.9);border:none;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.3s ease;color:#e74c3c" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+                                    <i class="fas fa-heart"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <form action="{% url 'add_to_wishlist' product.pk %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" style="background:rgba(255,255,255,0.9);border:none;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.3s ease;color:#95a5a6" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div style="padding:15px;flex:1;display:flex;flex-direction:column;justify-content:space-between">
+                            <h5 style="font-size:16px;font-weight:600;margin-bottom:10px;color:#333;height:40px;overflow:hidden">{{ product.name }}</h5>
+                            <p style="font-size:20px;color:#2ecc71;font-weight:700;margin:10px 0">₹{{ product.price }}</p>
+                            <div style="display:flex;gap:10px;margin-top:auto">
+                                <a href="{% url 'product_detail' product.id %}" style="flex:1;padding:10px;border:none;border-radius:25px;font-weight:500;font-size:14px;transition:all 0.3s ease;background:#3498db;color:#fff;text-decoration:none;text-align:center" onmouseover="this.style.background='#2980b9';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(52,152,219,0.3)'" onmouseout="this.style.background='#3498db';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                                    View Details
+                                </a>
+                                <form action="{% url 'add_to_cart' product.id %}" method="POST" style="flex:1">
+                                    {% csrf_token %}
+                                    <button type="submit" style="width:100%;padding:10px;border:none;border-radius:25px;font-weight:500;font-size:14px;transition:all 0.3s ease;background:#2ecc71;color:#fff" onmouseover="this.style.background='#27ae60';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(46,204,113,0.3)'" onmouseout="this.style.background='#2ecc71';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                                        Add to Cart
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
-   
-    
-        {% if not products %}
-        <div class="alert alert-info" role="alert" style="text-align: center;">
-            No products available.
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Pagination Section -->
-    <div class="pagination">
-        {% if products.has_previous %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ products.previous_page_number }}">Previous</a>
-        </li>
-        {% endif %}
-        {% for num in products.paginator.page_range %}
-        <li class="page-item {% if products.number == num %}active{% endif %}">
-            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-        </li>
-        {% endfor %}
-        {% if products.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ products.next_page_number }}">Next</a>
-        </li>
-        {% endif %}
-    </div>
-
-    <!-- Bootstrap JS, Popper.js, and jQuery -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
+</div>
 {% endblock %}

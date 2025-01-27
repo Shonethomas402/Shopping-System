@@ -1,6 +1,248 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="container dashboard-page d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="row w-100">
+        <!-- User Profile Summary Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg">
+                <div class="card-body text-center">
+                    <div class="profile-image mb-3">
+                        {% if user.profile_image %}
+                            <img src="{{ user.profile_image.url }}" alt="Profile" class="rounded-circle">
+                        {% else %}
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        {% endif %}
+                    </div>
+                    <h4 class="card-title">{{ user.get_full_name|default:user.username }}</h4>
+                    <p class="text-muted">Member since {{ user.date_joined|date:"F Y" }}</p>
+                    <div class="profile-stats d-flex justify-content-around mt-4">
+                        <div class="stat-item">
+                            <h5>{{ orders_count }}</h5>
+                            <small class="text-muted">Orders</small>
+                        </div>
+                        <div class="stat-item">
+                            <h5>{{ wishlist_count }}</h5>
+                            <small class="text-muted">Wishlist</small>
+                        </div>
+                        <div class="stat-item">
+                            <h5>{{ reviews_count }}</h5>
+                            <small class="text-muted">Reviews</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Actions -->
+        <div class="col-md-8">
+            <div class="row">
+                <!-- Quick Actions -->
+                <div class="col-12 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Quick Actions</h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <a href="{% url 'orders' %}" class="btn btn-primary btn-block dashboard-btn">
+                                        <i class="fas fa-shopping-bag mb-2"></i>
+                                        <span>Your Orders</span>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="{% url 'delivery_address_list' %}" class="btn btn-info btn-block dashboard-btn">
+                                        <i class="fas fa-map-marker-alt mb-2"></i>
+                                        <span>Addresses</span>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="{% url 'your_wishlist' %}" class="btn btn-danger btn-block dashboard-btn">
+                                        <i class="fas fa-heart mb-2"></i>
+                                        <span>Wishlist</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                <div class="col-12 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Recent Orders</h5>
+                            {% if recent_orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Order ID</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Total</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in recent_orders %}
+                                            <tr>
+                                                <td>#{{ order.id }}</td>
+                                                <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                                <td>
+                                                    <span class="badge badge-{{ order.status_color }}">
+                                                        {{ order.status }}
+                                                    </span>
+                                                </td>
+                                                <td>₹{{ order.total_amount }}</td>
+                                                <td>
+                                                    <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                        View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted text-center">No recent orders found.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div class="col-12">
+                    <div class="card shadow-lg">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Account Settings</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {% comment %}   {% endcomment %}
+                                        <i class="fas fa-user-edit mb-2"></i>
+                                        <span>Edit Profile</span>
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a href="{% url 'change_password' %}" class="btn btn-warning btn-block dashboard-btn">
+                                        <i class="fas fa-lock mb-2"></i>
+                                        <span>Change Password</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Dashboard Styles */
+    .dashboard-page {
+        padding: 2rem 0;
+        background-color: #f8f9fa;
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .profile-image img {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    .profile-stats {
+        border-top: 1px solid #eee;
+        padding-top: 1rem;
+    }
+
+    .stat-item {
+        padding: 0.5rem;
+    }
+
+    .dashboard-btn {
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .dashboard-btn i {
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .dashboard-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Status Badge Colors */
+    .badge-pending {
+        background-color: #ffc107;
+    }
+
+    .badge-processing {
+        background-color: #17a2b8;
+    }
+
+    .badge-completed {
+        background-color: #28a745;
+    }
+
+    .badge-cancelled {
+        background-color: #dc3545;
+    }
+
+    /* Table Styles */
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .dashboard-btn {
+            height: 80px;
+        }
+
+        .profile-stats {
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            width: 33.33%;
+        }
+    }
+</style>
+{% endblock %} 
+
+{% comment %} {% extends 'base.html' %}
+
+{% block content %}
 <div class="container profile-page d-flex justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="card shadow-lg" style="width: 400px;">
         <div class="card-body text-center">
@@ -15,6 +257,9 @@
                 </li>
                 <li class="list-group-item">
                     <a href="{% url 'update_profile' %}" class="btn btn-warning btn-block">Update Profile</a>
+                </li>
+                <li class="list-group-item">
+                    <a href="{% url 'your_wishlist' %}" class="btn btn-info btn-block">Your Wishlist</a>
                 </li>
                
             </ul>
@@ -86,4 +331,5 @@
         margin-top: 10px;
     }
 </style>
-{% endblock %}
+{% endblock %} {% endcomment %}
+

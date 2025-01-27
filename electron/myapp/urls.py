@@ -50,15 +50,17 @@ urlpatterns = [
 
     path('logout/', custom_logout, name='logout'),
 
-    path('orders/', views.orders, name='orders'),
+    # path('orders/', views.orders, name='orders'),
     path('address/', views.address, name='address'),
+    path('orders/', views.orders_view, name='orders'),
+    
    
 
     path('delivery-addresses/', delivery_address_list, name='delivery_address_list'),
     path('delivery-addresses/add/', add_delivery_address, name='add_delivery_address'),
     path('delivery-addresses/edit/<int:address_id>/', edit_delivery_address, name='edit_delivery_address'),
     path('delivery-addresses/delete/<int:address_id>/', delete_delivery_address, name='delete_delivery_address'),
-    path('update_profile/', views.update_profile, name='update_profile'),
+    #path('update_profile/', views.update_profile, name='update_profile'),
 
     path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
     path('user_manage/', views.user_manage, name='user_manage'),
@@ -97,7 +99,7 @@ urlpatterns = [
     #path('save_for_later_page/', views.save_for_later_page, name='save_for_later_page'),
     path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
-    path('wishlist/', views.view_wishlist, name='view_wishlist'),
+    path('wishlist/', views.your_wishlist, name='your_wishlist'),
     path('cart/', views.view_cart, name='view_cart'),
     path('remove_saved_items/<int:item_id>/', views.remove_saved_items, name='remove_saved_items'),
 
@@ -107,10 +109,27 @@ urlpatterns = [
     path('payment/success/', views.payment_success, name='payment_success'),
     path('payment/failure/', views.payment_failure, name='payment_failure'),
     path('logout/', custom_logout, name='logout'),
+    #path('response/', views.chatbot_response, name='chatbot_response'),
+    #path('wishlist/', views.wishlist_view, name='your_wishlist'),
+    path('order/<int:order_id>/pdf/', views.generate_order_pdf, name='order_pdf'),
+    path('product/<int:product_id>/', views.product_detail, name='product_detail'),
+    path('submit_rating/', views.submit_rating, name='submit_rating'),
+    #path('rate-product/', views.rate_product, name='rate_product'),
+    path('rate-product/<int:product_id>/', views.rate_product, name='rate_product'),
 
-
+    path('change-password/', views.change_password, name='change_password'),
+    # path('profilee/', views.profilee_view, name='profilee'),
+    # path('update_profile/', views.update_profile, name='update_profile'),
+    path('profile/', views.profile, name='profile'), 
+    path('repair-service/', views.repair_service, name='repair_service'),
+    path('repair-master/', views.repair_master_dashboard, name='repair_master_dashboard'),
 
 ]
+    
+
+
+
+
 if settings.DEBUG:
       urlpatterns +=  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
                

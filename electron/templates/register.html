@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -231,5 +231,467 @@
             }
         });
     </script>
+</body>
+</html> {% endcomment %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1e1e2f;
+            --secondary-color: #2b2b3f;
+            --accent-color: #667eea;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1e1e2f 0%, #2b2b3f 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background: repeating-linear-gradient(
+                60deg,
+                rgba(102, 126, 234, 0.1) 0%,
+                rgba(118, 75, 162, 0.1) 100%
+            );
+            animation: backgroundMove 15s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes backgroundMove {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Floating Shapes */
+        .shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.5;
+            animation: float 6s infinite;
+        }
+
+        .shape:nth-child(1) {
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            border: 2px solid rgba(118, 75, 162, 0.5);
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            width: 70px;
+            height: 70px;
+            background: rgba(102, 126, 234, 0.2);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+            }
+        }
+
+        .signup-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            margin: 2rem;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .form-header::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+
+        .form-header h1 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .input-group:hover {
+            transform: translateX(5px);
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+            background: white;
+        }
+
+        .form-control:focus + i {
+            color: var(--accent-color);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            position: relative;
+        }
+
+        .login-link::before,
+        .login-link::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .login-link::before {
+            left: 0;
+        }
+
+        .login-link::after {
+            right: 0;
+        }
+
+        .login-link a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #764ba2;
+        }
+
+        /* Rest of your existing styles... */
+    </style>
+</head>
+<body>
+    <!-- Animated Background Shapes -->
+    <div class="shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <!-- Your existing form content... -->
+   
+        <div class="signup-container">
+            <div class="form-header">
+                <h1>Create Account</h1>
+                <p>Join our community today</p>
+            </div>
+            
+            <form id="signupForm" method="post" action="{% url 'register' %}">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="usernameError"></div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="emailError"></div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="phone_number">Phone Number</label>
+                    <div class="input-group">
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="phone_number" name="phone_number" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="phoneError"></div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <div class="input-group">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <input type="text" id="location" name="location" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="locationError"></div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="password1">Password</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password1" name="password1" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="password1Error"></div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="password2">Confirm Password</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password2" name="password2" class="form-control" required>
+                    </div>
+                    <div class="error-message" id="password2Error"></div>
+                </div>
+    
+                <button type="submit">Create Account</button>
+            </form>
+    
+            <div class="login-link">
+                <p>Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+            </div>
+        </div>
+    
+        <script>
+            const form = document.getElementById('signupForm');
+            const inputs = {
+                username: document.getElementById('username'),
+                email: document.getElementById('email'),
+                phone: document.getElementById('phone_number'),
+                location: document.getElementById('location'),
+                password1: document.getElementById('password1'),
+                password2: document.getElementById('password2')
+            };
+    
+            const errors = {
+                username: document.getElementById('usernameError'),
+                email: document.getElementById('emailError'),
+                phone: document.getElementById('phoneError'),
+                location: document.getElementById('locationError'),
+                password1: document.getElementById('password1Error'),
+                password2: document.getElementById('password2Error')
+            };
+    
+            // Validation functions
+            const validators = {
+                username: (value) => {
+                    if (value.length < 5) {
+                        return 'Username must be at least 5 characters long';
+                    }
+                    return '';
+                },
+                email: (value) => {
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailPattern.test(value)) {
+                        return 'Please enter a valid email address';
+                    }
+                    return '';
+                },
+                phone: (value) => {
+                    if (!/^\d{10}$/.test(value)) {
+                        return 'Phone number must be 10 digits';
+                    }
+                    return '';
+                },
+                location: (value) => {
+                    if (value.length < 3) {
+                        return 'Location must be at least 3 characters long';
+                    }
+                    return '';
+                },
+                password1: (value) => {
+                    if (value.length < 8) {
+                        return 'Password must be at least 8 characters long';
+                    }
+                    return '';
+                },
+                password2: (value) => {
+                    if (value !== inputs.password1.value) {
+                        return 'Passwords do not match';
+                    }
+                    return '';
+                }
+            };
+    
+            // Add validation to each input
+            Object.keys(inputs).forEach(field => {
+                inputs[field].addEventListener('input', () => {
+                    const error = validators[field](inputs[field].value);
+                    errors[field].textContent = error;
+                    errors[field].style.display = error ? 'block' : 'none';
+                    inputs[field].style.borderColor = error ? 'var(--error-color)' : '#e1e1e1';
+                });
+            });
+    
+            // Form submission
+            form.addEventListener('submit', function(event) {
+                let hasError = false;
+                
+                Object.keys(inputs).forEach(field => {
+                    const error = validators[field](inputs[field].value);
+                    if (error) {
+                        errors[field].textContent = error;
+                        errors[field].style.display = 'block';
+                        inputs[field].style.borderColor = 'var(--error-color)';
+                        hasError = true;
+                    }
+                });
+    
+                if (hasError) {
+                    event.preventDefault();
+                }
+            });
+        <!-- Rest of your existing HTML... -->
+    </div>
+
+    <!-- Your existing JavaScript... -->
 </body>
 </html>

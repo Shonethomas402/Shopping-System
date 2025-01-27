@@ -1,4 +1,27 @@
 {% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h3>Update Profile</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="text" name="phone_no" class="form-control" value="{{ profile.phone_no }}">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" name="location" class="form-control" value="{{ profile.location }}">
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% comment %} {% extends 'base.html' %}
 {% block content %}
 <body>
     <style>
@@ -152,4 +175,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %} {% endcomment %}

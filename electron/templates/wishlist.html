@@ -1,6 +1,433 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container mt-5">
+    <!-- Added spacing above to push the content further down -->
+    <h2 class="text-center mb-4">Your Wishlist</h2>
+
+    <div class="row justify-content-center">
+        {% for item in wishlist_items %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" class="card-img-top" alt="{{ item.product.name }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.product.name }}</h5>
+                    <p class="card-text">₹{{ item.product.price }}</p>
+                    
+                    <div class="d-flex justify-content-between">
+                        <form action="{% url 'add_to_cart' item.product.id %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        </form>
+                        
+                        <form action="{% url 'remove_from_wishlist' item.product.id %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <p class="mt-4">Your wishlist is empty</p>
+            <a href="{% url 'user_dashboard' %}" class="btn btn-primary">Browse Products</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% comment %} {% extends "base.html" %}
+
+{% block content %}
+{% load static %}
+<div class="container mt-4">
+    <div class="wishlist-header">
+        <h2><i class="fas fa-heart text-danger"></i> Your Wishlist</h2>
+        <p class="text-muted">Items you've saved for later</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        {% for product in wishlist_products %}
+        <div class="col-md-4 col-lg-3 mb-4">
+            <div class="card product-card h-100">
+                <div class="product-image-wrapper">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
+                    {% else %}
+                    <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
+                    {% endif %}
+                    <div class="product-overlay">
+                        <a href="{% url 'product_detail' product.pk %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-eye"></i> Quick View
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-truncate">{{ product.name }}</h5>
+                    <p class="card-text price-tag">₹{{ product.price }}</p>
+                    
+                    <div class="mt-auto button-group">
+                        <form action="{% url 'add_to_cart' product.pk %}" method="POST" class="mb-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        </form>
+                        
+                        <form action="{% url 'remove_from_wishlist' product.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-block">
+                                <i class="fas fa-trash-alt"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center empty-wishlist">
+            <i class="fas fa-heart-broken text-muted"></i>
+            <h3>Your wishlist is empty</h3>
+            <p class="text-muted">Browse our products and add items you love to your wishlist!</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Browse Products
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .wishlist-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .product-card {
+        border: none;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .product-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        padding-top: 100%; /* 1:1 Aspect Ratio */
+    }
+
+    .product-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .product-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .product-image-wrapper:hover .product-overlay {
+        opacity: 1;
+    }
+
+    .product-image-wrapper:hover .product-img {
+        transform: scale(1.1);
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .price-tag {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #ff416c;
+        margin-bottom: 1rem;
+    }
+
+    .button-group {
+        margin-top: 1rem;
+    }
+
+    .btn {
+        border-radius: 25px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+    }
+
+    .empty-wishlist {
+        padding: 4rem 0;
+    }
+
+    .empty-wishlist i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-wishlist h3 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .alert {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .col-md-4 {
+            padding: 0 0.5rem;
+        }
+        
+        .wishlist-header {
+            padding: 1rem 0;
+        }
+    }
+</style>
+{% endblock %} {% endcomment %}
+{% comment %} {% extends "base.html" %}
+
+{% block content %}
+{% load static %}
+<div class="container mt-4">
+    <div class="wishlist-header">
+        <h2><i class="fas fa-heart text-danger"></i> Your Wishlist</h2>
+        <p class="text-muted">Items you've saved for later</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        {% for item in wishlist_products %}
+        <div class="col-md-4 col-lg-3 mb-4">
+            <div class="card product-card h-100">
+                <div class="product-image-wrapper">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" class="card-img-top product-img" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'default-product-image.jpg' %}" class="card-img-top product-img" alt="No image available">
+                    {% endif %}
+                    <div class="product-overlay">
+                        <a href="{% url 'product_detail' item.product.pk %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-eye"></i> Quick View
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-truncate">{{ item.product.name }}</h5>
+                    <p class="card-text price-tag">₹{{ item.product.price }}</p>
+                    
+                    <div class="mt-auto button-group">
+                        <form action="{% url 'add_to_cart' item.product.pk %}" method="POST" class="mb-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        </form>
+                        
+                        <form action="{% url 'remove_from_wishlist' item.product.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-block">
+                                <i class="fas fa-trash-alt"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center empty-wishlist">
+            <i class="fas fa-heart-broken text-muted"></i>
+            <h3>Your wishlist is empty</h3>
+            <p class="text-muted">Browse our products and add items you love to your wishlist!</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Browse Products
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .wishlist-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .product-card {
+        border: none;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .product-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        padding-top: 100%; /* 1:1 Aspect Ratio */
+    }
+
+    .product-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .product-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .product-image-wrapper:hover .product-overlay {
+        opacity: 1;
+    }
+
+    .product-image-wrapper:hover .product-img {
+        transform: scale(1.1);
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .price-tag {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #ff416c;
+        margin-bottom: 1rem;
+    }
+
+    .button-group {
+        margin-top: 1rem;
+    }
+
+    .btn {
+        border-radius: 25px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+    }
+
+    .empty-wishlist {
+        padding: 4rem 0;
+    }
+
+    .empty-wishlist i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-wishlist h3 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .alert {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .col-md-4 {
+            padding: 0 0.5rem;
+        }
+        
+        .wishlist-header {
+            padding: 1rem 0;
+        }
+    }
+</style>
+{% endblock %} {% endcomment %}
+
+
+
+{% comment %} {% extends "base.html" %}
+
+{% block content %}
 {% load static %}
 <div class="container">
     <h2>Your Wishlist</h2>
@@ -24,7 +451,7 @@
                 
                 <div class="card-body">
                     <h5 class="card-title">{{ item.product.name }}</h5>
-                    <p class="card-text">Price: ${{ item.product.price }}</p>
+                    <p class="card-text">Price: ₹{{ item.product.price }}</p>
                     
                    
                     
@@ -50,4 +477,4 @@
     
     </div>
 </div>
-{% endblock %}
+{% endblock %} {% endcomment %}

@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'myapp',
     'social_django',
+    'chatbot',
+   
 
 ]
 

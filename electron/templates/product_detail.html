@@ -1,10 +1,10 @@
-{% extends 'base.html' %}
+ {% extends 'base.html' %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row">
+        <!-- Product Image Section -->
         <div class="col-md-6">
-            <!-- Product Image -->
             {% if product.image %}
                 <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid">
             {% else %}
@@ -12,18 +12,88 @@
             {% endif %}
         </div>
 
-    <div class="col-md-6">
+        <!-- Product Details Section -->
+        <div class="col-md-6">
             <h2>{{ product.name }}</h2>
             <p><strong>Description:</strong> {{ product.description }}</p>
-            <p><strong>Price:</strong> ${{ product.price }}</p>
+            <p><strong>Price:</strong> ₹{{ product.price }}</p>
             <p><strong>Stock:</strong> {{ product.stock }}</p>
             <p><strong>Category:</strong> {{ product.category.name }}</p>
 
             <!-- Action Buttons -->
-            <div class="d-flex">
-            <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary">Add to Cart</a>
-            <a href="{% url 'buy_now' product.id %}" class="btn btn-success">Buy Now</a>
+            <div class="d-flex mb-3">
+                <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary me-2">Add to Cart</a>
+                <a href="{% url 'buy_now' product.id %}" class="btn btn-success">Buy Now</a>
+            </div>
+
+            <!-- Rating Section -->
+            <div class="rating-section mt-4">
+                <h4>Rate this product:</h4>
+                <form method="POST" action="{% url 'rate_product' product.id %}" class="rating-form">
+                    {% csrf_token %}
+                    <div class="rating">
+                        <input type="radio" id="star5" name="rating" value="5" {% if user_rating.rating == 5 %}checked{% endif %}>
+                        <label for="star5"></label>
+                        <input type="radio" id="star4" name="rating" value="4" {% if user_rating.rating == 4 %}checked{% endif %}>
+                        <label for="star4"></label>
+                        <input type="radio" id="star3" name="rating" value="3" {% if user_rating.rating == 3 %}checked{% endif %}>
+                        <label for="star3"></label>
+                        <input type="radio" id="star2" name="rating" value="2" {% if user_rating.rating == 2 %}checked{% endif %}>
+                        <label for="star2"></label>
+                        <input type="radio" id="star1" name="rating" value="1" {% if user_rating.rating == 1 %}checked{% endif %}>
+                        <label for="star1"></label>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- CSS for Rating -->
+<style>
+    .rating {
+        display: inline-block;
+        direction: rtl;  /* Right to left to make the hover effect work properly */
+    }
+    .rating input {
+        display: none;
+    }
+    .rating label {
+        float: right;
+        cursor: pointer;
+        color: #ccc;
+        font-size: 30px;
+        padding: 0 2px;
+        transition: all 0.2s ease;
+    }
+    .rating label:before {
+        content: '★';
+    }
+    .rating input:checked ~ label,
+    .rating label:hover,
+    .rating label:hover ~ label {
+        color: #ffd700;
+    }
+    .rating form:hover label {
+        color: #ccc;
+    }
+    .rating form:hover label:hover,
+    .rating form:hover label:hover ~ label {
+        color: #ffd700;
+    }
+</style>
+
+<!-- JavaScript for Rating -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingForm = document.querySelector('.rating-form');
+    const ratingInputs = ratingForm.querySelectorAll('input[type="radio"]');
+
+    ratingInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            ratingForm.submit();
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -2,7 +2,8 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from .models import Profile 
+
+from django.contrib.auth.forms import UserCreationForm
 
 class UserLoginForm(forms.Form):
     username = forms.CharField(max_length=150, label='Username')
@@ -72,44 +73,12 @@ class DeliveryAddressForm(forms.ModelForm):
 #   class Meta:
 #         model = User
 #         fields = ['first_name', 'last_name', 'email', 'phone no', 'location']
-class ProfileUpdateForm(forms.ModelForm):
-    email = forms.EmailField()
-    username = forms.CharField(max_length=150)
+# class ProfileeUpdateForm(forms.ModelForm):
+#     class Meta:
+#         model = Profilee
+#         fields = ['phone_no', 'location', 'email', 'first_name', 'last_name']
 
-    class Meta:
-        model = Profile
-        fields = ['location', 'phone_no', 'username']
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        super(ProfileUpdateForm, self).__init__(*args, **kwargs)
-        
-        if self.user:
-            # Set initial values for username and email from the User model
-            self.fields['email'].initial = self.user.email
-            self.fields['username'].initial = self.user.username
-
-    def clean_phone_no(self):
-        phone_no = self.cleaned_data.get('phone_no')
-        if len(phone_no) != 10:
-            raise forms.ValidationError("Phone number must be exactly 10 digits.")
-        return phone_no
-
-    def clean_location(self):
-        location = self.cleaned_data.get('location')
-        if len(location) > 15:
-            raise forms.ValidationError("Location must not exceed 15 characters.")
-        return location
-
-    def save(self, commit=True):
-        profile = super().save(commit=False)
-        
-        # Update the associated User model's fields (username and email)
-        if self.user:
-            self.user.username = self.cleaned_data['username']
-            self.user.email = self.cleaned_data['email']
-            if commit:
-                self.user.save()  # Save the User model changes
-        if commit:
-            profile.save()  # Save the Profile model changes
-        return profile
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         for field in self.fields:
+#             self.fields[field].widget.attrs.update({'class': 'form-control'})

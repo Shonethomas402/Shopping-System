@@ -1,3 +1,229 @@
+{% comment %} {% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Electronics Shop</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 450px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .login-container h2 {
+            margin-bottom: 30px;
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding: 12px 20px;
+            border: 2px solid #e1e1e1;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102,126,234,0.25);
+        }
+
+        .btn-login {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px 20px;
+            width: 100%;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        .social-login {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .google-button {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 10px 20px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .google-button:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+
+        .login-options {
+            margin-top: 25px;
+            text-align: center;
+            color: #666;
+        }
+
+        .login-options a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .login-options a:hover {
+            color: #764ba2;
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 15px;
+            top: 45px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .login-container h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Welcome Back</h2>
+        <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+                <i class="fas fa-user input-icon"></i>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <i class="fas fa-eye input-icon" id="togglePassword"></i>
+            </div>
+            <button type="submit" class="btn btn-login">
+                <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+            </button>
+        </form>
+        
+        <div class="social-login">
+            <a href="{% url 'social:begin' 'google-oauth2' %}" style="text-decoration: none;">
+                <button class="google-button">
+                    <img src="{% static 'images/google.png' %}" alt="Google Logo" style="width: 24px; height: 24px;">
+                    Continue with Google
+                </button>
+            </a>
+        </div>
+        
+        <div class="login-options">
+            <p>Don't have an account? <a href="{% url 'register' %}">Create Account</a></p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.6.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const password = document.getElementById('password');
+            if (password.type === 'password') {
+                password.type = 'text';
+                this.classList.remove('fa-eye');
+                this.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                this.classList.remove('fa-eye-slash');
+                this.classList.add('fa-eye');
+            }
+        });
+    </script>
+</body>
+</html> {% endcomment %}
+
+
 {% load static %}
 
 <!DOCTYPE html>
@@ -9,107 +235,388 @@
     
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background: url("{% static 'images/login-bg.jpg' %}") no-repeat center center fixed;
-            background-size: cover;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            background: linear-gradient(135deg, #1e1e2f 0%, #2b2b3f 100%);
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-container {
-            background-color: rgba(255, 255, 255, 0.9);
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background: repeating-linear-gradient(
+                60deg,
+                rgba(102, 126, 234, 0.1) 0%,
+                rgba(118, 75, 162, 0.1) 100%
+            );
+            animation: backgroundMove 15s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes backgroundMove {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Floating Shapes */
+        .shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.5;
+            animation: float 6s infinite;
+        }
+
+        .shape:nth-child(1) {
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            border: 2px solid rgba(118, 75, 162, 0.5);
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            width: 70px;
+            height: 70px;
+            background: rgba(102, 126, 234, 0.2);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+            }
+        }
+
+        {% comment %} .login-container {
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 450px;
             width: 100%;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        } {% endcomment %}
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 450px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
+    
         .login-container h2 {
+            color: #1e1e2f;
+            text-align: center;
+            font-size: 2.2rem;
             margin-bottom: 30px;
-            font-weight: 700;
-            color: #007bff;
-            text-align: center;
-        }
-
-        .form-group label {
             font-weight: 600;
-            color: #333;
+            position: relative;
+            padding-bottom: 10px;
         }
-
+    
+        .login-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+    
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+    
+        .form-group label {
+            color: #1e1e2f;
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+    
         .form-control {
-            border-radius: 50px;
-            padding: 10px 20px;
+            height: 50px;
+            padding: 10px 20px 10px 45px;
+            font-size: 1rem;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
         }
-
+    
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+    
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 42px;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+    
+        #togglePassword {
+            left: unset;
+            right: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+    
+        #togglePassword:hover {
+            color: #764ba2;
+        }
+    
         .btn-login {
-            background-color: #007bff;
-            color: #fff;
-            border-radius: 50px;
-            padding: 10px 20px;
             width: 100%;
-            transition: background-color 0.3s ease;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
         }
-
+    
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+    
+        .btn-login:hover::before {
+            left: 100%;
+        }
+    
         .btn-login:hover {
-            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
-
-        .login-options {
-            margin-top: 15px;
+    
+        .social-login {
+            margin-top: 30px;
+            position: relative;
             text-align: center;
         }
-
-        .login-options a {
-            color: #007bff;
-            text-decoration: none;
+    
+        .social-login::before,
+        .social-login::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 60px);
+            height: 1px;
+            background: #e1e1e1;
         }
-
+    
+        .social-login::before {
+            left: 0;
+        }
+    
+        .social-login::after {
+            right: 0;
+        }
+    
+        .google-button {
+            width: 100%;
+            height: 50px;
+            background: white;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    
+        .google-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+    
+        .login-options {
+            margin-top: 25px;
+            text-align: center;
+            color: #666;
+        }
+    
+        .login-options a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+    
         .login-options a:hover {
+            color: #764ba2;
             text-decoration: underline;
         }
+    
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 15px;
+            }
+    
+            .login-container h2 {
+                font-size: 1.8rem;
+            }
+    
+            .form-control {
+                height: 45px;
+            }
+    
+            .btn-login {
+                height: 45px;
+            }
+        }
+
+        /* Rest of your existing styles... */
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Login</h2>
-        <form method="POST" action="{% url 'login' %}">
-            {% csrf_token %}
-           
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-login" id="login">Login</button>
-        </form>
-        <div class="social-login">
-            <a href="{% url 'social:begin' 'google-oauth2' %}">
-                <button class="google-button">
-                    <img src="{% static 'images/google.png' %}" alt="Google Logo" style="width: 24px; height: 24px;">
-                    Login with Google
-                </button>
-            </a>
-        </div>
-        
-        <div class="login-options">
-            <p>Don't have an account? <a href="{% url 'register' %}">Sign Up</a></p>
-            
-        </div>
+    <!-- Animated Background Shapes -->
+    <div class="shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.6.0/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <div class="login-container">
+            <h2>Welcome Back</h2>
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                    <i class="fas fa-eye input-icon" id="togglePassword"></i>
+                </div>
+                <button type="submit" class="btn btn-login">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                </button>
+            </form>
+            
+            <div class="social-login">
+                <a href="{% url 'social:begin' 'google-oauth2' %}" style="text-decoration: none;">
+                    <button class="google-button">
+                        <img src="{% static 'images/google.png' %}" alt="Google Logo" style="width: 24px; height: 24px;">
+                        Continue with Google
+                    </button>
+                </a>
+            </div>
+            
+            <div class="login-options">
+                <p>Don't have an account? <a href="{% url 'register' %}">Create Account</a></p>
+            </div>
+        </div>
+    
+        <!-- Scripts -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.6.0/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        
+        <script>
+            // Toggle password visibility
+            document.getElementById('togglePassword').addEventListener('click', function() {
+                const password = document.getElementById('password');
+                if (password.type === 'password') {
+                    password.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                } else {
+                    password.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }
+            });
+        </script>
+        <!-- Rest of your existing form content... -->
+    </div>
+
+    <!-- Your existing scripts... -->
 </body>
 </html>

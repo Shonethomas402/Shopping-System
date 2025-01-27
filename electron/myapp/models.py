@@ -97,13 +97,13 @@ class DeliveryAddress(models.Model):  # Renamed from Address to DeliveryAddress
     def __str__(self):
         return f"{self.name}, {self.address}"
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    location = models.CharField(max_length=15)
-    phone_no = models.CharField(max_length=10)
+# class Profile(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE)
+#     location = models.CharField(max_length=15)
+#     phone_no = models.CharField(max_length=10)
 
-    def __str__(self):
-        return f'{self.user.username} Profile'
+#     def __str__(self):
+#         return f'{self.user.username} Profile'
     
 # models.py
 from django.contrib.auth.models import User
@@ -118,9 +118,17 @@ class UserProfile(models.Model):
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-
+    
     class Meta:
         unique_together = ('user', 'product')
     
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
+class Rating(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    rating = models.IntegerField()  # Note: If you're using 'rating' instead of 'score'
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')

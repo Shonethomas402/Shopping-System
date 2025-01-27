@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Chatbot Responses</h2>
+    
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="query">Query:</label>
+            <input type="text" class="form-control" id="query" name="query" required>
+        </div>
+        <div class="form-group">
+            <label for="response">Response:</label>
+            <textarea class="form-control" id="response" name="response" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Response</button>
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Query</th>
+                <th>Response</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for response in responses %}
+            <tr>
+                <td>{{ response.query }}</td>
+                <td>{{ response.response }}</td>
+                <td>
+                    <a href="{% url 'edit_response' response.id %}" class="btn btn-sm btn-info">Edit</a>
+                    <form method="post" action="{% url 'delete_response' response.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

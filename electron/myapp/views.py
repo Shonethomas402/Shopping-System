@@ -202,6 +202,7 @@ from django.shortcuts import render, redirect
 from .models import Category
 from django.http import HttpResponse
 
+
 def category_management(request):
     if request.method == 'POST':
         # Handle form submission
@@ -335,28 +336,25 @@ def view_cart(request):
     return render(request, 'cart.html', context)
 
 
-
-
-
 def remove_from_cart(request, product_id):
-    # Fetch all carts for the user
-    carts = Cart.objects.filter(user=request.user)
+    try:
+        # Fetch the active cart for the user
+        cart = Cart.objects.filter(user=request.user, is_active=True).first()
+        if not cart:
+            messages.error(request, "No active cart found.")
+            return redirect('view_cart')
 
-    # If multiple carts exist, just get the first one (or handle according to your logic)
-    if carts.exists():
-        cart = carts.first()  # Get the first cart
-    else:
-        return redirect('view_cart')  # Redirect if no cart found
+        # Get the cart item to remove
+        cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
 
-    # Get the cart item to remove
-    cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
+        # Delete the cart item
+        cart_item.delete()
+        messages.success(request, "Item removed from cart.")
 
-    # Delete the cart item
-    cart_item.delete()
-    
-    # Redirect to the view cart page
+    except CartItems.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
+
     return redirect('view_cart')
-
 def checkout(request):
 
     if request.method == 'POST':
@@ -376,43 +374,6 @@ def custom_logout(request):
     return redirect('login')
 
 
-# from django.shortcuts import render, redirect, get_object_or_404
-
-
-
-# def increase_quantity(request, product_id):
-#     product = get_object_or_404(Product, id=product_id)
-#     cart = Cart.objects.filter(user=request.user).first()
-#     cart_item = get_object_or_404(CartItems, cart=cart, product=product)
-
-#     # Check if adding one more exceeds the stock
-#     if cart_item.quantity < product.stock:
-#         cart_item.quantity += 1
-#         cart_item.save()
-
-#     return redirect('view_cart')
-
-
-
-# def decrease_quantity(request, product_id):
-#     # Get the user's cart
-#     cart = Cart.objects.filter(user=request.user).first()
-    
-#     if not cart:
-#         return redirect('view_cart')
-
-#     # Get the cart item for the specified product
-#     cart_item = get_object_or_404(CartItems, cart=cart, product_id=product_id)
-
-#     # Decrease the quantity
-#     if cart_item.quantity > 1:
-#         cart_item.quantity -= 1
-#         cart_item.save()
-#     else:
-#         # Optionally remove the item if quantity reaches 1 and user tries to decrease further
-#         cart_item.delete()
-
-#     return redirect('view_cart')
 def increase_quantity(request, product_id):
     try:
         # Get the user's active cart
@@ -538,25 +499,35 @@ def buy_now(request, product_id):
     # Logic for the "Buy Now" action, such as adding the product to the cart and redirecting to checkout
     # For now, let's redirect the user to the checkout page
     return redirect('checkout')
-from .forms import ProfileUpdateForm
 
+
+# @login_required
+# def update_profile(request):
+#     try:
+#         profilee = request.user.profilee
+#     except Profilee.DoesNotExist:
+#         profilee = Profilee.objects.create(user=request.user)
+
+#     if request.method == 'POST':
+#         form = ProfileeUpdateForm(request.POST, instance=profilee)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Profile updated successfully!')
+#             return redirect('profilee')
+#     else:
+#         form = ProfileeUpdateForm(instance=profilee)
+#     return render(request, 'update_profile.html', {'form': form})
+
+# @login_required
+# def profilee_view(request):
+#     try:
+#         profilee = request.user.profilee
+#     except Profilee.DoesNotExist:
+#         profilee = Profilee.objects.create(user=request.user)
+#     return render(request, 'profilee.html', {'profilee': profilee})
 @login_required
-def update_profile(request):
-     # Get the profile associated with the current user
-     profile = request.user.profile
-
-     if request.method == 'POST':
-         form = ProfileUpdateForm(request.POST, instance=profile, user=request.user)
-         if form.is_valid():
-             form.save()  # This will save both the User's email and Profile fields
-             return redirect('profile')
-     else:
-         form = ProfileUpdateForm(instance=profile, user=request.user)
-     return render(request, 'update_profile.html', {'form': form})
-
-# views.py
-
-
+def profile_view(request):
+    return render(request, 'profile.html', {'user': request.user})
 @login_required
 def user_manage(request):
     users = User.objects.all()
@@ -591,9 +562,9 @@ def category_management(request):
         category_name = request.POST.get('name', '').strip()
 
         # Validation for characters only
-        if not re.match(r'^[A-Za-z\s]+$', category_name):
-            messages.error(request, 'Category name must contain only letters and spaces.')
-            return redirect('category_management')
+        # if not re.match(r'^[A-Za-z\s]+$', category_name):
+        #     messages.error(request, 'Category name must contain only letters and spaces.')
+        #     return redirect('category_management')
 
         # Check for duplicate category
         if Category.objects.filter(name__iexact=category_name).exists():
@@ -672,7 +643,10 @@ def cart_view(request):
         'total_price': total_price,
     }
     return render(request, 'cart.html', context)
+from django.db import transaction
+import logging
 
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @login_required
@@ -683,7 +657,6 @@ def payment_response(request):
             razorpay_payment_id = payment_data.get('razorpay_payment_id')
             razorpay_order_id = payment_data.get('razorpay_order_id')
             razorpay_signature = payment_data.get('razorpay_signature')
-            logger.debug(f"Received Razorpay order_id: {razorpay_order_id}")
 
             # Verify payment signature
             params_dict = {
@@ -694,13 +667,12 @@ def payment_response(request):
             
             # Verify the payment signature
             client.utility.verify_payment_signature(params_dict)
-            
 
             # Get the order and update it
             order = Order.objects.get(payment_id=razorpay_order_id)
             order.status = 'Completed'
+            order.payment_id = razorpay_payment_id 
             order.save()
-            logger.debug(f"Order {order.id} updated to Completed")
 
             # Clear the cart only after successful payment
             cart = Cart.objects.filter(user=request.user, is_active=True).first()
@@ -711,11 +683,11 @@ def payment_response(request):
                     product = item.product
                     product.stock -= item.quantity
                     product.save()
-                   
+        
+
                 # Deactivate the cart instead of deleting it
                 cart.is_active = False
                 cart.save()
-                logger.debug("Cart deactivated successfully")
 
             # Clear session data
             request.session.pop('selected_address', None)
@@ -726,28 +698,6 @@ def payment_response(request):
                 'message': 'Payment processed successfully',
                 'order_id': order.id
             })
-    
-
-    # except json.JSONDecodeError:
-    #     logger.error("Invalid JSON in request body")
-    #     return JsonResponse({
-    #         'status': 'error',
-    #         'message': 'Invalid request data'
-    #     }, status=400)
-
-    # except razorpay.errors.SignatureVerificationError:
-    #     logger.error("Payment signature verification failed")
-    #     return JsonResponse({
-    #         'status': 'error',
-    #         'message': 'Payment verification failed'
-    #     }, status=400)
-
-    # except Order.DoesNotExist:
-    #     logger.error(f"Order not found for payment_id: {razorpay_order_id}")
-    #     return JsonResponse({
-    #         'status': 'error',
-    #         'message': 'Order not found'
-    #     }, status=404)
 
     except Exception as e:
         logger.error(f"Error in payment_response: {str(e)}")
@@ -755,6 +705,7 @@ def payment_response(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
 
 
 import logging
@@ -842,33 +793,364 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Product, Wishlist
+from django.http import JsonResponse
+
+
+
+# @login_required
+# def add_to_wishlist(request, product_id):
+#     if request.method == 'POST':
+#         try:
+#             product = get_object_or_404(Product, pk=product_id)
+            
+#             # Delete any duplicate wishlists
+#             Wishlist.objects.filter(user=request.user).delete()
+            
+#             # Create a new wishlist or get the existing one
+#             wishlist, created = Wishlist.objects.get_or_create(user=request.user)
+#             wishlist.products.add(product)
+            
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': 'Product added to wishlist'
+#             })
+            
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': False,
+#                 'message': str(e)
+#             })
+    
+#     return JsonResponse({
+#         'success': False,
+#         'message': 'Invalid request method'
+#     })
+
+# @login_required
+# def remove_from_wishlist(request, product_id):
+#     if request.method == 'POST':
+#         try:
+#             product = get_object_or_404(Product, pk=product_id)
+#             wishlist = Wishlist.objects.filter(user=request.user).first()
+            
+#             if wishlist:
+#                 wishlist.products.remove(product)
+                
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': 'Product removed from wishlist'
+#             })
+            
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': False,
+#                 'message': str(e)
+#             })
+    
+#     return JsonResponse({
+#         'success': False,
+#         'message': 'Invalid request method'
+#     })
+
+# @login_required
+# def view_wishlist(request):
+#     try:
+#         wishlist = Wishlist.objects.get(user=request.user)
+#         wishlist_products = wishlist.products.all()
+#     except Wishlist.DoesNotExist:
+#         wishlist_products = []
+    
+#     context = {
+#         'wishlist_products': wishlist_products
+#     }
+#     return render(request, 'wishlist.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.contrib import messages
+from .models import Product, Wishlist
 
 @login_required
 def add_to_wishlist(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+    if request.method == 'POST':
+        try:
+            product = get_object_or_404(Product, id=product_id)
+            wishlist_item, created = Wishlist.objects.get_or_create(
+                user=request.user,
+                product=product
+            )
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Added to wishlist'
+                })
+            
+            messages.success(request, 'Product added to wishlist!')
+            return redirect('your_wishlist')
+            
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': str(e)
+                })
+            messages.error(request, 'Error adding to wishlist')
+            return redirect('user_dashboard')
 
-    if created:
-        messages.success(request, "Product added to your wishlist!")
-    else:
-        messages.info(request, "This product is already in your wishlist.")
-    
-    return redirect('view_wishlist')
+@login_required
 def remove_from_wishlist(request, product_id):
-    # Assuming you have a Wishlist model that links users to products
+    if request.method == 'POST':
+        try:
+            wishlist_item = get_object_or_404(Wishlist, 
+                user=request.user, 
+                product_id=product_id
+            )
+            wishlist_item.delete()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Removed from wishlist'
+                })
+            
+            messages.success(request, 'Product removed from wishlist!')
+            return redirect('your_wishlist')
+            
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': str(e)
+                })
+            messages.error(request, 'Error removing from wishlist')
+            return redirect('your_wishlist')
+
+@login_required
+def your_wishlist(request):
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
+    context = {
+        'wishlist_items': wishlist_items
+    }
+    return render(request, 'wishlist.html', context)
+import logging
+
+logger = logging.getLogger(__name__)
+
+def create_order(user, total_price, payment_order, selected_address_id):
     try:
-        wishlist_item = Wishlist.objects.get(user=request.user, product_id=product_id)
-        wishlist_item.delete()  # Remove the item from the wishlist
-        messages.success(request, 'Product removed from your wishlist.')
-    except Wishlist.DoesNotExist:
-        messages.error(request, 'No such product in your wishlist.')
-    return redirect('view_wishlist')  # Change 'wishlist' to your actual wishlist URL name
+        order = Order.objects.create(
+            user=user,
+            status='Pending',
+            total_price=total_price,
+            payment_id=payment_order['id'],
+            address_id=selected_address_id
+        )
+        logger.info(f"Order created: {order.id}")
+        return order
+    except Exception as e:
+        logger.error(f"Error creating order: {str(e)}")
+        raise
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Order
 
-  
-def view_wishlist(request):
-    # Retrieve wishlist items for the logged-in user
+@login_required
+def orders_view(request):
+    orders = (
+        Order.objects.filter(user=request.user)
+        .order_by('-created_at')
+        .prefetch_related('items__product')
+    )
+
+    # Debug: Print orders and their items
+    for order in orders:
+        print(f"Order ID: {order.id}, Status: {order.status}, Total: {order.total_price}")
+        for item in order.items.all():
+            print(f"  - Item: {item.product.name}, Quantity: {item.quantity}, Total: {item.product_total()}")
+            
+    return render(request, 'orders.html', {'orders': orders})
+from django.shortcuts import render
+
+def wishlist_view(request):
+    # Replace with logic to fetch the user's wishlist items if needed
+    wishlist_items = []  # Example placeholder for wishlist data
     
-    wishlist_products = Wishlist.objects.filter(user=request.user).select_related('product')
-    # Pass the wishlist items to the template
-    return render(request, 'wishlist.html', {'wishlist_products': wishlist_products})
+    return render(request, 'wishlist.html', {'wishlist_items': wishlist_items})
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+import io
+from django.shortcuts import get_object_or_404
+from .models import Order
 
+def generate_order_pdf(request, order_id):
+    # Get the order
+    order = get_object_or_404(Order, id=order_id)
+    
+    # Create a file-like buffer to receive PDF data
+    buffer = io.BytesIO()
+    
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    # Add company logo/header
+    p.setFont("Helvetica-Bold", 24)
+    p.drawString(50, 750, "Electronics Shop")
+    
+    # Add order information
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, 700, f"Order #{order.id}")
+    
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 670, f"Date: {order.created_at.strftime('%d %B %Y')}")
+    p.drawString(50, 650, f"Customer: {order.user.get_full_name() or order.user.username}")
+    p.drawString(50, 630, f"Status: {order.status}")
+    
+    # Create table for order items
+    data = [['Product', 'Quantity', 'Price', 'Total']]
+    for item in order.items.all():
+        data.append([
+            item.product.name,
+            str(item.quantity),
+            f"₹{item.product.price}",
+            f"₹{item.product_total}"
+        ])
+    
+    # Add total row
+    data.append(['', '', 'Total:', f"₹{order.total_price}"])
+    
+    # Create the table
+    table = Table(data, colWidths=[200, 100, 100, 100])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.beige),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, -1), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    # Draw the table
+    table.wrapOn(p, 50, 50)
+    table.drawOn(p, 50, 500)
+    
+    # Add footer
+    p.setFont("Helvetica", 10)
+    p.drawString(50, 50, "Thank you for shopping with us!")
+    
+    # Close the PDF object cleanly
+    p.showPage()
+    p.save()
+    
+    # FileResponse sets the Content-Disposition header so that browsers
+    # present the option to save the file.
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename=f'order_{order.id}.pdf')
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Order
+
+@login_required
+def orders_view(request):
+    # Simple query without prefetch for now
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'orders.html', {'orders': orders})
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Product,Rating
+
+@login_required
+# ... existing imports ...
+
+def product_detail(request, id):  # Add 'id' parameter here
+    product = get_object_or_404(Product, id=id)
+    user_rating = None
+    if request.user.is_authenticated:
+        user_rating = Rating.objects.filter(user=request.user, product=product).first()
+    
+    context = {
+        'product': product,
+        'user_rating': user_rating
+    }
+    return render(request, 'product_detail.html', context)
+@login_required
+def rate_product(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, id=product_id)
+        rating_value = request.POST.get('rating')
+        
+        if rating_value:
+            rating, created = Rating.objects.get_or_create(
+                user=request.user,
+                product=product,
+                defaults={'rating': rating_value}
+            )
+            
+            if not created:
+                rating.rating = rating_value
+                rating.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success'})
+            
+        return redirect('product_detail', id=product_id)
+    return redirect('product_detail', id=product_id)
+
+@login_required
+def submit_rating(request):
+    if request.method == 'POST':
+        product_id = request.POST.get('product_id')
+        score = request.POST.get('score')
+
+        product = get_object_or_404(Product, id=product_id)
+        rating, created = Rating.objects.update_or_create(
+            user=request.user, product=product,
+            defaults={'score': score}
+        )
+        return JsonResponse({'success': True, 'message': 'Rating submitted successfully!'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid request!'})
+
+# new user
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib import messages
+from django.shortcuts import render, redirect
+
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important to keep user logged in
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('user_dashboard')
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'change_password.html', {
+        'form': form
+    })
+def repair_service(request):
+    return render(request, 'repair_service.html')
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+def is_repair_master(user):
+    return user.groups.filter(name='repair_master').exists()
+
+@login_required
+@user_passes_test(is_repair_master)
+def repair_master_dashboard(request):
+    return render(request, 'repair_master_dashboard.html')
