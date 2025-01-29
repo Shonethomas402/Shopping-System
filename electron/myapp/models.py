@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 
 
 
@@ -132,3 +133,70 @@ class Rating(models.Model):
 
     class Meta:
         unique_together = ('user', 'product')
+
+class RepairMaster(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.CharField(max_length=191, unique=True, db_index=True)
+    phone = models.CharField(max_length=15)
+    id_no = models.CharField(max_length=20, unique=True)
+    password = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['email'], name='email_idx'),
+        ]
+
+    def __str__(self):
+        return self.name
+    
+class Technician(models.Model):
+    name = models.CharField(max_length=30)
+    pin_no = models.CharField(max_length=20, unique=True)
+    repair_master = models.ForeignKey(RepairMaster, on_delete=models.CASCADE, related_name='technicians')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+    
+class RepairRequest(models.Model):
+    DEVICE_CHOICES = [
+        ('smartphone', 'Smartphone'),
+        ('laptop', 'Laptop'),
+        ('tablet', 'Tablet'),
+        ('desktop', 'Desktop'),
+        ('other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ]
+
+    device_type = models.CharField(
+        max_length=20,
+        choices=DEVICE_CHOICES
+    )
+
+    proof_of_purchase = models.FileField(
+        upload_to='repair_proofs/',
+        validators=[FileExtensionValidator(['pdf'])]
+    )
+
+    issue_description = models.TextField()
+
+    pin_number = models.CharField(
+        max_length=20
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.device_type} - PIN: {self.pin_number}"

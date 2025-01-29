@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Add New Technician</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="name" 
+                                   name="name" 
+                                   maxlength="30" 
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pin_no" class="form-label">PIN Number</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="pin_no" 
+                                   name="pin_no" 
+                                   maxlength="20" 
+                                   required>
+                            <small class="text-muted">Must be unique</small>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Technician</button>
+                            <a href="{% url 'repair_master_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const pinNo = document.getElementById('pin_no').value.trim();
+        
+        if (!name || !pinNo) {
+            e.preventDefault();
+            alert('Please fill in all fields');
+            return;
+        }
+    });
+
+    // Delete technician functionality
+    document.querySelectorAll('.delete-tech').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this technician?')) {
+                const techId = this.dataset.techId;
+                fetch(`/delete-technician/${techId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error deleting technician');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

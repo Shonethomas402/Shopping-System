@@ -122,7 +122,12 @@ urlpatterns = [
     # path('update_profile/', views.update_profile, name='update_profile'),
     path('profile/', views.profile, name='profile'), 
     path('repair-service/', views.repair_service, name='repair_service'),
-    path('repair-master/', views.repair_master_dashboard, name='repair_master_dashboard'),
+    path('repair-master/login/', views.repair_master_login, name='repair_master_login'),
+    path('repair-master/register/', views.repair_master_register, name='repair_master_register'),
+    path('repair-master/logout/', views.repair_master_logout, name='repair_master_logout'),
+    path('repair-master/dashboard/', views.repair_master_dashboard, name='repair_master_dashboard'),
+    path('repair-request/<int:request_id>/<str:status>/', views.update_repair_status, name='update_repair_status'),
+    path('repair-master/add-technician/', views.add_technician, name='add_technician'),
 
 ]
     

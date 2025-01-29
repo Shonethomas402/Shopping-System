@@ -1144,13 +1144,231 @@ def change_password(request):
         'form': form
     })
 def repair_service(request):
+    if request.method == 'POST':
+        try:
+            # Get form data
+            device_type = request.POST.get('device_type')
+            proof_of_purchase = request.FILES.get('proof_of_purchase')
+            issue_description = request.POST.get('issue_description')
+            pin_number = request.POST.get('pin_number')
+
+            # Validate required fields
+            if not all([device_type, proof_of_purchase, issue_description, pin_number]):
+                messages.error(request, 'All fields are required')
+                return redirect('repair_service')
+
+            # Create repair request
+            repair_request = RepairRequest.objects.create(
+                device_type=device_type,
+                proof_of_purchase=proof_of_purchase,
+                issue_description=issue_description,
+                pin_number=pin_number
+            )
+
+            messages.success(request, f'Repair request submitted successfully! Your PIN number is: {pin_number}')
+            return redirect('repair_service')
+
+        except Exception as e:
+            messages.error(request, f'Error submitting repair request: {str(e)}')
+            return redirect('repair_service')
+
     return render(request, 'repair_service.html')
-from django.contrib.auth.decorators import login_required, user_passes_test
 
-def is_repair_master(user):
-    return user.groups.filter(name='repair_master').exists()
+def update_repair_status(request, request_id, status):
+    """Handle repair request status updates"""
+    if request.method == 'POST':
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            # Update status
+            if status in ['pending', 'approved', 'rejected']:
+                repair_request.status = status
+                repair_request.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Status updated to {status}'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Invalid status'
+                })
+                
+        except RepairRequest.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Repair request not found'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    })
 
-@login_required
-@user_passes_test(is_repair_master)
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.http import JsonResponse
+from .models import RepairRequest, RepairMaster, Technician
+from django.contrib.auth.hashers import make_password, check_password
+
+def repair_master_register(request):
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.POST.get('name')
+            email = request.POST.get('email')
+            phone = request.POST.get('phone')
+            password = request.POST.get('password')
+            confirm_password = request.POST.get('confirm_password')
+
+            # Validate required fields
+            if not all([name, email, phone, password, confirm_password]):
+                messages.error(request, 'All fields are required')
+                return redirect('repair_master_register')
+
+            # Check if passwords match
+            if password != confirm_password:
+                messages.error(request, 'Passwords do not match')
+                return redirect('repair_master_register')
+
+            # Check if email already exists
+            if RepairMaster.objects.filter(email=email).exists():
+                messages.error(request, 'Email already registered')
+                return redirect('repair_master_register')
+
+            # Create repair master
+            repair_master = RepairMaster.objects.create(
+                name=name,
+                email=email,
+                phone=phone,
+                password=make_password(password)  # Hash the password
+            )
+
+            messages.success(request, 'Registration successful! Please login.')
+            return redirect('repair_master_login')
+
+        except Exception as e:
+            messages.error(request, f'Error during registration: {str(e)}')
+            return redirect('repair_master_register')
+
+    return render(request, 'repair_master_register.html')
+
+def repair_master_login(request):
+    if request.method == 'POST':
+        try:
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+
+            # Validate required fields
+            if not all([email, password]):
+                messages.error(request, 'All fields are required')
+                return redirect('repair_master_login')
+
+            # Check if repair master exists
+            try:
+                repair_master = RepairMaster.objects.get(email=email)
+            except RepairMaster.DoesNotExist:
+                messages.error(request, 'Invalid email or password')
+                return redirect('repair_master_login')
+
+            # Verify password
+            if check_password(password, repair_master.password):
+                # Store repair master id in session
+                request.session['repair_master_id'] = repair_master.id
+                messages.success(request, 'Login successful!')
+                return redirect('repair_master_dashboard')
+            else:
+                messages.error(request, 'Invalid email or password')
+                return redirect('repair_master_login')
+
+        except Exception as e:
+            messages.error(request, f'Error during login: {str(e)}')
+            return redirect('repair_master_login')
+
+    return render(request, 'repair_master_login.html')
+
+def repair_master_logout(request):
+    # Clear repair master session
+    if 'repair_master_id' in request.session:
+        del request.session['repair_master_id']
+    messages.success(request, 'Logged out successfully')
+    return redirect('repair_master_login')
+
 def repair_master_dashboard(request):
-    return render(request, 'repair_master_dashboard.html')
+    # Check if repair master is logged in
+    repair_master_id = request.session.get('repair_master_id')
+    if not repair_master_id:
+        messages.error(request, 'Please login first')
+        return redirect('repair_master_login')
+    
+    try:
+        # Get repair master and their technicians
+        repair_master = RepairMaster.objects.get(id=repair_master_id)
+        repair_requests = RepairRequest.objects.all().order_by('-created_at')
+        technicians = Technician.objects.filter(repair_master=repair_master).order_by('-created_at')
+        
+        context = {
+            'repair_master': repair_master,
+            'repair_requests': repair_requests,
+            'technicians': technicians,  # Add technicians to context
+            'title': 'Repair Master Dashboard'
+        }
+        return render(request, 'repair_master_dashboard.html', context)
+    
+    except RepairMaster.DoesNotExist:
+        messages.error(request, 'Invalid session')
+        return redirect('repair_master_login')
+    except Exception as e:
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('repair_master_login')
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import RepairMaster, Technician
+
+def add_technician(request):
+    repair_master_id = request.session.get('repair_master_id')
+    if not repair_master_id:
+        messages.error(request, 'Please login first')
+        return redirect('repair_master_login')
+    
+    try:
+        repair_master = RepairMaster.objects.get(id=repair_master_id)
+        
+        if request.method == 'POST':
+            name = request.POST.get('name')
+            pin_no = request.POST.get('pin_no')
+            
+            # Validate required fields
+            if not all([name, pin_no]):
+                messages.error(request, 'All fields are required')
+                return redirect('add_technician')
+            
+            # Check if PIN is unique
+            if Technician.objects.filter(pin_no=pin_no).exists():
+                messages.error(request, 'This PIN number is already in use')
+                return redirect('add_technician')
+            
+            # Create new technician
+            technician = Technician.objects.create(
+                name=name,
+                pin_no=pin_no,
+                repair_master=repair_master
+            )
+            
+            messages.success(request, 'Technician added successfully!')
+            return redirect('repair_master_dashboard')
+        
+        return render(request, 'add_technician.html', {'repair_master': repair_master})
+    
+    except RepairMaster.DoesNotExist:
+        messages.error(request, 'Invalid session')
+        return redirect('repair_master_login')
+    except Exception as e:
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('repair_master_dashboard')

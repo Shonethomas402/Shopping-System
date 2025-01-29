@@ -152,123 +152,88 @@
 {% endblock %}
 
 {% block content %}
-<div class="repair-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto text-center mb-5">
-                <h1 class="repair-title">Electronics Repair Service</h1>
-                <p class="lead">Professional repair service for all your electronic devices</p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="repair-card">
-                    <form class="repair-form" method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label>Device Type</label>
-                            <select class="form-control" required>
-                                <option value="">Select Device Type</option>
-                                <option value="smartphone">Smartphone</option>
-                                <option value="laptop">Laptop</option>
-                                <option value="tablet">Tablet</option>
-                                <option value="desktop">Desktop</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Proof of Purchase</label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="proofOfPurchase" name="proof_of_purchase" accept=".pdf" required>
-                                <label class="custom-file-label" for="proofOfPurchase">Choose PDF file</label>
-                            </div>
-                            <small class="form-text text-muted">Please upload your purchase invoice/receipt in PDF format</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Issue Description</label>
-                            <textarea class="form-control" rows="4" placeholder="Describe the issue with your device" required></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Contact Number</label>
-                            <input type="tel" class="form-control" placeholder="Enter your contact number" required>
-                        </div>
-
-                        <button type="submit" class="btn btn-submit btn-block">Submit Repair Request</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="row service-features">
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-tools feature-icon"></i>
-                    <h4 class="feature-title">Expert Technicians</h4>
-                    <p>Certified professionals with years of experience</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-clock feature-icon"></i>
-                    <h4 class="feature-title">Quick Service</h4>
-                    <p>Fast turnaround time for most repairs</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-shield-alt feature-icon"></i>
-                    <h4 class="feature-title">Warranty</h4>
-                    <p>90-day warranty on all repairs</p>
-                    <button class="btn btn-info mt-2" data-toggle="modal" data-target="#warrantyModal">
-                        <i class="fas fa-info-circle"></i> Warranty Details
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Repair Master Portal Section -->
-        <div class="row mt-4">
-            <div class="col-lg-6 mx-auto text-center">
-                <div class="feature-item">
-                    <i class="fas fa-user-cog feature-icon"></i>
-                    <h4 class="feature-title">Repair Master Portal</h4>
-                    <p>Access dashboard for authorized repair technicians</p>
-                    <a href="{% url 'repair_master_dashboard' %}" class="btn btn-portal">
-                        <i class="fas fa-tools"></i> Repair Master Login
-                    </a>
-                </div>
-            </div>
+<div class="container py-5">
+    <!-- Repair Master Login Link -->
+    <div class="row mb-4">
+        <div class="col-12 text-end">
+            <a href="{% url 'repair_master_login' %}" class="btn btn-outline-primary">
+                Repair Master Login
+            </a>
         </div>
     </div>
-</div>
 
-<!-- Warranty Modal -->
-<div class="modal fade" id="warrantyModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Warranty Information</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Messages section -->
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
             </div>
-            <div class="modal-body">
-                <h6>Our 90-Day Warranty Covers:</h6>
-                <ul>
-                    <li>Parts replacement</li>
-                    <li>Labor costs</li>
-                    <li>Technical support</li>
-                    <li>Free inspection</li>
-                    <li>Software updates</li>
-                </ul>
-                <p>Terms and conditions apply. Contact our support team for details.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            {% endif %}
+
+            <div class="repair-card">
+                <h2 class="text-center mb-4">Submit Repair Request</h2>
+                <form class="repair-form" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <!-- Device Type - Matching DEVICE_CHOICES from model -->
+                    <div class="form-group mb-3">
+                        <label for="device_type" class="form-label">Device Type</label>
+                        <select class="form-control" name="device_type" id="device_type" required>
+                            <option value="">Select Device Type</option>
+                            <option value="smartphone">Smartphone</option>
+                            <option value="laptop">Laptop</option>
+                            <option value="tablet">Tablet</option>
+                            <option value="desktop">Desktop</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Proof of Purchase - FileField with PDF validator -->
+                    <div class="form-group mb-3">
+                        <label for="proof_of_purchase" class="form-label">Proof of Purchase</label>
+                        <input type="file" 
+                               class="form-control" 
+                               id="proof_of_purchase" 
+                               name="proof_of_purchase" 
+                               accept=".pdf" 
+                               required>
+                        <small class="form-text text-muted">Please upload your purchase invoice/receipt in PDF format</small>
+                    </div>
+
+                    <!-- Issue Description - TextField -->
+                    <div class="form-group mb-3">
+                        <label for="issue_description" class="form-label">Issue Description</label>
+                        <textarea class="form-control" 
+                                  id="issue_description" 
+                                  name="issue_description" 
+                                  rows="4" 
+                                  placeholder="Describe the issue with your device" 
+                                  required></textarea>
+                    </div>
+
+                    <!-- PIN Number - CharField -->
+                    <div class="form-group mb-3">
+                        <label for="pin_number" class="form-label">PIN Number</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="pin_number" 
+                               name="pin_number" 
+                               maxlength="20"
+                               placeholder="Enter your PIN number" 
+                               required>
+                        <small class="form-text text-muted">Maximum 20 characters</small>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Submit Repair Request</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -276,191 +241,35 @@
 
 {% block extra_js %}
 <script>
-    // Display selected filename
-    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
-        var fileName = e.target.files[0].name;
-        var nextSibling = e.target.nextElementSibling;
-        nextSibling.innerText = fileName;
-    });
-
-    // Validate file type
-    document.querySelector('form').addEventListener('submit', function(e) {
-        var fileInput = document.getElementById('proofOfPurchase');
-        var filePath = fileInput.value;
-        var allowedExtensions = /(\.pdf)$/i;
-        
-        if (!allowedExtensions.exec(filePath)) {
-            alert('Please upload a PDF file only');
-            fileInput.value = '';
-            e.preventDefault();
-            return false;
+document.addEventListener('DOMContentLoaded', function() {
+    // File input handler
+    const fileInput = document.getElementById('proof_of_purchase');
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            const fileSize = this.files[0].size / 1024 / 1024; // in MB
+            if (fileSize > 5) {
+                alert('File size should not exceed 5MB');
+                this.value = '';
+            }
+            
+            const fileType = this.files[0].type;
+            if (fileType !== 'application/pdf') {
+                alert('Only PDF files are allowed');
+                this.value = '';
+            }
         }
     });
+
+    // Form submission handler
+    const form = document.querySelector('.repair-form');
+    form.addEventListener('submit', function(e) {
+        const pinNumber = document.getElementById('pin_number').value.trim();
+        if (pinNumber.length > 20) {
+            e.preventDefault();
+            alert('PIN number should not exceed 20 characters');
+        }
+    });
+});
 </script>
 {% endblock %}
-{% endblock %}{% comment %} {% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Repair Service - Electronics Shop{% endblock %}
-
-{% block extra_css %}
-<style>
-    .repair-section {
-        padding: 60px 0;
-        background-color: #f8f9fa;
-    }
-
-    .repair-card {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 30px;
-        transition: transform 0.3s ease;
-    }
-
-    .repair-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .repair-icon {
-        font-size: 2.5rem;
-        color: #3498db;
-        margin-bottom: 20px;
-    }
-
-    .repair-title {
-        color: #2c3e50;
-        font-size: 1.8rem;
-        margin-bottom: 30px;
-        font-weight: 600;
-    }
-
-    .repair-form label {
-        font-weight: 500;
-        color: #2c3e50;
-    }
-
-    .repair-form .form-control {
-        border-radius: 8px;
-        padding: 12px;
-        border: 1px solid #dee2e6;
-    }
-
-    .repair-form .btn-submit {
-        background: #3498db;
-        color: white;
-        padding: 12px 30px;
-        border-radius: 8px;
-        border: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .repair-form .btn-submit:hover {
-        background: #2980b9;
-        transform: translateY(-2px);
-    }
-
-    .service-features {
-        margin-top: 50px;
-    }
-
-    .feature-item {
-        text-align: center;
-        padding: 20px;
-    }
-
-    .feature-icon {
-        font-size: 2rem;
-        color: #3498db;
-        margin-bottom: 15px;
-    }
-
-    .feature-title {
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #2c3e50;
-    }
-</style>
 {% endblock %}
-
-{% block content %}
-<div class="repair-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto text-center mb-5">
-                <h1 class="repair-title">Electronics Repair Service</h1>
-                <p class="lead">Professional repair service for all your electronic devices</p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="repair-card">
-                    <form class="repair-form">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label>Device Type</label>
-                            <select class="form-control" required>
-                                <option value="">Select Device Type</option>
-                                <option value="smartphone">Smartphone</option>
-                                <option value="laptop">Laptop</option>
-                                <option value="tablet">Tablet</option>
-                                <option value="desktop">Desktop</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Proof of Purchase</label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="proofOfPurchase" name="proof_of_purchase" accept=".pdf" required>
-                                <label class="custom-file-label" for="proofOfPurchase">Choose PDF file</label>
-                            </div>
-                            <small class="form-text text-muted">Please upload your purchase invoice/receipt in PDF format</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Issue Description</label>
-                            <textarea class="form-control" rows="4" placeholder="Describe the issue with your device" required></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Contact Number</label>
-                            <input type="tel" class="form-control" placeholder="Enter your contact number" required>
-                        </div>
-
-                        <button type="submit" class="btn btn-submit btn-block">Submit Repair Request</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="row service-features">
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-tools feature-icon"></i>
-                    <h4 class="feature-title">Expert Technicians</h4>
-                    <p>Certified professionals with years of experience</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-clock feature-icon"></i>
-                    <h4 class="feature-title">Quick Service</h4>
-                    <p>Fast turnaround time for most repairs</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-item">
-                    <i class="fas fa-shield-alt feature-icon"></i>
-                    <h4 class="feature-title">Warranty</h4>
-                    <p>90-day warranty on all repairs</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %} {% endcomment %}
