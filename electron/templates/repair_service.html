@@ -156,7 +156,7 @@
     <!-- Repair Master Login Link -->
     <div class="row mb-4">
         <div class="col-12 text-end">
-            <a href="{% url 'repair_master_login' %}" class="btn btn-outline-primary">
+            {% comment %} <a href="{% url 'repair_master_login' %}" class="btn btn-outline-primary"> {% endcomment %}
                 Repair Master Login
             </a>
         </div>
@@ -217,7 +217,7 @@
                     </div>
 
                     <!-- PIN Number - CharField -->
-                    <div class="form-group mb-3">
+                    {% comment %} <div class="form-group mb-3">
                         <label for="pin_number" class="form-label">PIN Number</label>
                         <input type="text" 
                                class="form-control" 
@@ -227,6 +227,16 @@
                                placeholder="Enter your PIN number" 
                                required>
                         <small class="form-text text-muted">Maximum 20 characters</small>
+                    </div> {% endcomment %}
+                    <div class="form-group mb-3">
+                        <label for="pin_number" class="form-label">PIN Number</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="pin_number" 
+                               name="pin_number" 
+                               maxlength="20"
+                               placeholder="Enter your PIN number" 
+                               required>
                     </div>
 
                     <!-- Submit Button -->
@@ -266,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const pinNumber = document.getElementById('pin_number').value.trim();
         if (pinNumber.length > 20) {
             e.preventDefault();
-            alert('PIN number should not exceed 20 characters');
+            alert('PIN number should not exceed 20 characters'); 
         }
     });
 });

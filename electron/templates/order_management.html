@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 30px;
+        }
+
+        .main-content h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        /* Card Styling */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        /* Table Styling */
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            margin-top: 20px;
+        }
+
+        .table thead {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .table th,
+        .table td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        .table th {
+            font-weight: 500;
+        }
+
+        .table tbody tr {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+        }
+
+        .table tbody tr:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Status Styling */
+        .status-completed {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        /* Button Styling */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-download {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #0056b3;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+
+            .sidebar h2 {
+                display: none;
+            }
+
+            .sidebar a span {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 80px;
+            }
+
+            .table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Admin Dashboard</h2>
+        <a href="{% url 'admin_dashboard' %}">Dashboard Overview</a>
+        <a href="{% url 'order_management' %}" class="active">Order Management</a>
+        <a href="{% url 'product_management' %}">Product Management</a>
+        <a href="{% url 'user_manage' %}">User Management</a>
+        <a href="{% url 'technician_management' %}">Technician Management</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h2>Order Management</h2>
+
+        <!-- Display Messages -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <!-- Completed Orders -->
+        <div class="card">
+            <div class="card-header">Completed Orders</div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Total Price</th>
+                            <th>Status</th>
+                            <th>Order Date</th>
+                            <th>Items</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in completed_orders %}
+                        <tr>
+                            <td>{{ order.user.username }}</td>
+                            <td>${{ order.total_price }}</td>
+                            <td>
+                                <span class="status-completed">{{ order.status }}</span>
+                            </td>
+                            <td>{{ order.created_at }}</td>
+                            <td>
+                                <ul>
+                                    {% for item in order.items.all %}
+                                        <li>{{ item.product.name }} - Quantity: {{ item.quantity }}</li>
+                                    {% empty %}
+                                        <li>No items found.</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No completed orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Orders -->
+        <div class="card">
+            <div class="card-header">Pending Orders</div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Total Price</th>
+                            <th>Status</th>
+                            <th>Order Date</th>
+                            <th>Items</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% comment %} {% for order in pending_orders %}
+                        <tr>
+                            <td>{{ order.user.username }}</td>
+            ...(about 3 lines omitted)... {% endcomment %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+{% comment %} <!-- projectsem4/electro/electron/templates/order_management.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        h2 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .order-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h3 {
+            color: #1a237e;
+            margin-bottom: 10px;
+        }
+        .order-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .order-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        .order-details {
+            margin-left: 20px;
+        }
+        .total-price {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>Order Management</h2>
+
+    <div class="order-section">
+        <h3>Completed Orders</h3>
+        <ul class="order-list">
+            {% for order in completed_orders %}
+                <li class="order-item">
+                    <div>
+                        <span class="status">Status: {{ order.status }}</span> | 
+                        <span>User: {{ order.user.username }}</span> | 
+                        <span class="total-price">Total Price: ${{ order.total_price }}</span>
+                    </div>
+                    <div class="order-details">
+                        <strong>Items:</strong>
+                        <ul>
+                            {% for item in order.items.all %}
+                                <li>{{ item.product.name }} - Quantity: {{ item.quantity }}</li>
+                            {% empty %}
+                                <li>No items found.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Order Date:</strong> {{ order.created_at }}
+                    </div>
+                </li>
+            {% empty %}
+                <li>No completed orders found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="order-section">
+        <h3>Pending Orders</h3>
+        <ul class="order-list">
+            {% for order in pending_orders %}
+                <li class="order-item">
+                    <div>
+                        <span class="status">Status: {{ order.status }}</span> | 
+                        <span>User: {{ order.user.username }}</span> | 
+                        <span class="total-price">Total Price: ${{ order.total_price }}</span>
+                    </div>
+                    <div class="order-details">
+                        <strong>Items:</strong>
+                        <ul>
+                            {% for item in order.items.all %}
+                                <li>{{ item.product.name }} - Quantity: {{ item.quantity }}</li>
+                            {% empty %}
+                                <li>No items found.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Order Date:</strong> {{ order.created_at }}
+                    </div>
+                </li>
+            {% empty %}
+                <li>No pending orders found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% comment %} <div>
+        <h3>Generate Monthly Sales Invoice</h3>
+        <button onclick="location.href='{% url 'generate_invoice' %}'">Download Invoice</button>
+    </div> {% endcomment %}
+{% comment %} </body>
+</html>  {% endcomment %}

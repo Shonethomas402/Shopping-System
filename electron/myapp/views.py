@@ -17,6 +17,10 @@ from django.http import JsonResponse
 from decimal import Decimal
 import json
 import logging
+import pandas as pd
+import os
+import random
+from datetime import datetime, timedelta
 
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -61,21 +65,25 @@ def register(request):
 
 def login(request):
     if request.method == 'POST':
-        form = UserLoginForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                auth_login(request, user)
-                if user.is_superuser:  # If user is admin
-                    return redirect('admin_dashboard')  # Admin dashboard
-                else:
-                  return redirect('user_dashboard')  # Redirect to user dashboard after login
-    else:
-        form = UserLoginForm()
-
-    return render(request, 'login.html', {'form': form})
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            auth_login(request, user)
+            print(f"User is_superuser: {user.is_superuser}")  # Debug print
+            
+            # Explicitly check if user is superuser
+            if user.is_superuser:
+                print("Redirecting to admin dashboard")  # Debug print
+                return redirect('admin_dashboard')
+            else:
+                print("Redirecting to user dashboard")  # Debug print
+                return redirect('user_dashboard')
+        else:
+            messages.error(request, 'Invalid username or password')
+    
+    return render(request, 'login.html')
 
 def logout(request):
     logout()
@@ -110,16 +118,16 @@ def save_for_later(request, product_id):
     return redirect('view_saved_items') 
 
 # views.py
-from .models import SavedForLaterItem
-@login_required
-def view_saved_items(request):
-    saved_items = SavedForLaterItem.objects.filter(user=request.user).select_related('product')
-    return render(request, 'saved_for_later.html', {'saved_items': saved_items})
-def remove_saved_items(request, item_id):
-    item = get_object_or_404(SavedForLaterItem, pk=item_id)
-    if request.method == "POST":
-        item.delete()
-    return redirect('view_saved_items')
+# from .models import SavedForLaterItem
+# @login_required
+# def view_saved_items(request):
+#     saved_items = SavedForLaterItem.objects.filter(user=request.user).select_related('product')
+#     return render(request, 'saved_for_later.html', {'saved_items': saved_items})
+# def remove_saved_items(request, item_id):
+#     item = get_object_or_404(SavedForLaterItem, pk=item_id)
+#     if request.method == "POST":
+#         item.delete()
+#     return redirect('view_saved_items')
 def profile(request):
     return render(request, 'profile.html')  # You'll need a profile template
 
@@ -133,6 +141,8 @@ from .models import Product, Category  # Ensure you import necessary models
 from .forms import UserLoginForm  # Assuming you have a form for login
 
 def user_dashboard(request):
+    if request.user.is_superuser:
+        return redirect('admin_dashboard')
     # If the user is authenticated, display products on the dashboard
     if request.user.is_authenticated:
         # Fetch all products
@@ -159,10 +169,12 @@ from django.contrib.auth.models import User
 # Check if the user is a superuser (admin)
 def admin_required(user):
     return user.is_superuser
- # Ensure only admin users can access this view
+ #Ensure only admin users can access this view
+@login_required
+@user_passes_test(admin_required)  # Add this decorator
 def admin_dashboard(request):
     if not request.user.is_superuser:
-        return redirect('dashboard')
+        return redirect('user_dashboard')
     return render(request, 'admin_dashboard.html')
 
 from django.shortcuts import render, redirect
@@ -187,8 +199,8 @@ def admin_login(request):
 
 from django.shortcuts import render
 
-def admin_dashboard(request):
-    return render(request, 'admin_dashboard.html')
+# def admin_dashboard(request):
+#     return render(request, 'admin_dashboard.html')
 
 def user_authentication(request):
     return render(request, 'user_authentication.html')
@@ -426,9 +438,15 @@ def decrease_quantity(request, product_id):
 from django.shortcuts import render
 
 
+@login_required
 def orders(request):
-    # Logic for fetching and displaying user orders can go here
-    return render(request, 'orders.html')
+    print("Orders view accessed")  # Debugging line
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'orders.html', context)
+
 def address(request):
     # Logic for fetching and displaying user orders can go here
     return render(request, 'address.html')
@@ -952,26 +970,67 @@ def create_order(user, total_price, payment_order, selected_address_id):
     except Exception as e:
         logger.error(f"Error creating order: {str(e)}")
         raise
+import csv
+import os
+import numpy as np
+from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import Order
 
-@login_required
-def orders_view(request):
-    orders = (
-        Order.objects.filter(user=request.user)
-        .order_by('-created_at')
-        .prefetch_related('items__product')
-    )
 
-    # Debug: Print orders and their items
-    for order in orders:
-        print(f"Order ID: {order.id}, Status: {order.status}, Total: {order.total_price}")
-        for item in order.items.all():
-            print(f"  - Item: {item.product.name}, Quantity: {item.quantity}, Total: {item.product_total()}")
-            
-    return render(request, 'orders.html', {'orders': orders})
-from django.shortcuts import render
+
+# from django.shortcuts import render
+# from django.contrib.auth.decorators import login_required
+# from .models import Order
+# from delivery_prediction.src.model import DeliveryPredictor
+# import os
+# import csv
+
+# @login_required
+# def orders_view(request):
+#     orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    
+#     # Initialize the predictor
+#     predictor = DeliveryPredictor()
+    
+#     # Path to the training data file
+#     training_data_file = os.path.join(settings.BASE_DIR, 'Brazillian_e-commerce_Final.csv')  # Update the path accordingly
+
+#     # Read training data from the CSV file
+#     training_data = []
+#     try:
+#         with open(training_data_file, mode='r') as file:
+#             reader = csv.DictReader(file)
+#             for row in reader:
+#                 training_data.append({
+#                     'order_id': int(row['order_id']),
+#                     'feature1': float(row['feature1']),
+#                     'feature2': float(row['feature2']),
+#                     'delivery_time': float(row['delivery_time']),
+#                 })
+#     except FileNotFoundError:
+#         # Handle the case where the file does not exist
+#         return render(request, 'orders.html', {'orders': orders, 'error': 'Training data file not found.'})
+#     except Exception as e:
+#         # Handle any other exceptions
+#         return render(request, 'orders.html', {'orders': orders, 'error': str(e)})
+
+#     # Train the model with the loaded training data
+#     predictor.train(training_data)
+
+#     # Prepare data for predictions
+#     order_ids = [order.id for order in orders]
+#     features = predictor.prepare_features(order_ids)
+    
+#     # Get predictions
+#     predictions = predictor.predict(features)
+    
+#     # Create a mapping of order IDs to predictions
+#     order_predictions = {order.id: prediction for order, prediction in zip(orders, predictions)}
+#     print(order_predictions)
+    
+#     return render(request, 'orders.html', {'orders': orders, 'order_predictions': order_predictions})
 
 def wishlist_view(request):
     # Replace with logic to fetch the user's wishlist items if needed
@@ -1062,17 +1121,18 @@ from .models import Order
 
 @login_required
 def orders_view(request):
-    # Simple query without prefetch for now
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'orders.html', {'orders': orders})
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'orders.html', context)
+
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import Product,Rating
 
 @login_required
-# ... existing imports ...
-
 def product_detail(request, id):  # Add 'id' parameter here
     product = get_object_or_404(Product, id=id)
     user_rating = None
@@ -1210,165 +1270,448 @@ def update_repair_status(request, request_id, status):
         'message': 'Invalid request method'
     })
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.http import JsonResponse
-from .models import RepairRequest, RepairMaster, Technician
-from django.contrib.auth.hashers import make_password, check_password
+# from django.shortcuts import render, redirect, get_object_or_404
+# from django.contrib import messages
+# from django.http import JsonResponse
+# from .models import RepairRequest,Technician
+# from django.contrib.auth.hashers import make_password, check_password
 
-def repair_master_register(request):
-    if request.method == 'POST':
-        try:
-            # Get form data
-            name = request.POST.get('name')
-            email = request.POST.get('email')
-            phone = request.POST.get('phone')
-            password = request.POST.get('password')
-            confirm_password = request.POST.get('confirm_password')
+# def repair_master_register(request):
+#     if request.method == 'POST':
+#         try:
+#             # Get form data
+#             name = request.POST.get('name')
+#             email = request.POST.get('email')
+#             phone = request.POST.get('phone')
+#             password = request.POST.get('password')
+#             confirm_password = request.POST.get('confirm_password')
 
-            # Validate required fields
-            if not all([name, email, phone, password, confirm_password]):
-                messages.error(request, 'All fields are required')
-                return redirect('repair_master_register')
+#             # Validate required fields
+#             if not all([name, email, phone, password, confirm_password]):
+#                 messages.error(request, 'All fields are required')
+#                 return redirect('repair_master_register')
 
-            # Check if passwords match
-            if password != confirm_password:
-                messages.error(request, 'Passwords do not match')
-                return redirect('repair_master_register')
+#             # Check if passwords match
+#             if password != confirm_password:
+#                 messages.error(request, 'Passwords do not match')
+#                 return redirect('repair_master_register')
 
-            # Check if email already exists
-            if RepairMaster.objects.filter(email=email).exists():
-                messages.error(request, 'Email already registered')
-                return redirect('repair_master_register')
+#             # Check if email already exists
+#             if RepairMaster.objects.filter(email=email).exists():
+#                 messages.error(request, 'Email already registered')
+#                 return redirect('repair_master_register')
 
-            # Create repair master
-            repair_master = RepairMaster.objects.create(
-                name=name,
-                email=email,
-                phone=phone,
-                password=make_password(password)  # Hash the password
-            )
+#             # Create repair master
+#             repair_master = RepairMaster.objects.create(
+#                 name=name,
+#                 email=email,
+#                 phone=phone,
+#                 password=make_password(password)  # Hash the password
+#             )
 
-            messages.success(request, 'Registration successful! Please login.')
-            return redirect('repair_master_login')
+#             messages.success(request, 'Registration successful! Please login.')
+#             return redirect('repair_master_login')
 
-        except Exception as e:
-            messages.error(request, f'Error during registration: {str(e)}')
-            return redirect('repair_master_register')
+#         except Exception as e:
+#             messages.error(request, f'Error during registration: {str(e)}')
+#             return redirect('repair_master_register')
 
-    return render(request, 'repair_master_register.html')
+#     return render(request, 'repair_master_register.html')
 
-def repair_master_login(request):
-    if request.method == 'POST':
-        try:
-            email = request.POST.get('email')
-            password = request.POST.get('password')
+# def repair_master_login(request):
+#     if request.method == 'POST':
+#         try:
+#             email = request.POST.get('email')
+#             password = request.POST.get('password')
 
-            # Validate required fields
-            if not all([email, password]):
-                messages.error(request, 'All fields are required')
-                return redirect('repair_master_login')
+#             # Validate required fields
+#             if not all([email, password]):
+#                 messages.error(request, 'All fields are required')
+#                 return redirect('repair_master_login')
 
-            # Check if repair master exists
-            try:
-                repair_master = RepairMaster.objects.get(email=email)
-            except RepairMaster.DoesNotExist:
-                messages.error(request, 'Invalid email or password')
-                return redirect('repair_master_login')
+#             # Check if repair master exists
+#             try:
+#                 repair_master = RepairMaster.objects.get(email=email)
+#             except RepairMaster.DoesNotExist:
+#                 messages.error(request, 'Invalid email or password')
+#                 return redirect('repair_master_login')
 
-            # Verify password
-            if check_password(password, repair_master.password):
-                # Store repair master id in session
-                request.session['repair_master_id'] = repair_master.id
-                messages.success(request, 'Login successful!')
-                return redirect('repair_master_dashboard')
-            else:
-                messages.error(request, 'Invalid email or password')
-                return redirect('repair_master_login')
+#             # Verify password
+#             if check_password(password, repair_master.password):
+#                 # Store repair master id in session
+#                 request.session['repair_master_id'] = repair_master.id
+#                 messages.success(request, 'Login successful!')
+#                 return redirect('repair_master_dashboard')
+#             else:
+#                 messages.error(request, 'Invalid email or password')
+#                 return redirect('repair_master_login')
 
-        except Exception as e:
-            messages.error(request, f'Error during login: {str(e)}')
-            return redirect('repair_master_login')
+#         except Exception as e:
+#             messages.error(request, f'Error during login: {str(e)}')
+#             return redirect('repair_master_login')
 
-    return render(request, 'repair_master_login.html')
+#     return render(request, 'repair_master_login.html')
 
-def repair_master_logout(request):
-    # Clear repair master session
-    if 'repair_master_id' in request.session:
-        del request.session['repair_master_id']
-    messages.success(request, 'Logged out successfully')
-    return redirect('repair_master_login')
+# def repair_master_logout(request):
+#     # Clear repair master session
+#     if 'repair_master_id' in request.session:
+#         del request.session['repair_master_id']
+#     messages.success(request, 'Logged out successfully')
+#     return redirect('repair_master_login')
 
-def repair_master_dashboard(request):
-    # Check if repair master is logged in
-    repair_master_id = request.session.get('repair_master_id')
-    if not repair_master_id:
-        messages.error(request, 'Please login first')
-        return redirect('repair_master_login')
+# def repair_master_dashboard(request):
+#     # Check if repair master is logged in
+#     repair_master_id = request.session.get('repair_master_id')
+#     if not repair_master_id:
+#         messages.error(request, 'Please login first')
+#         return redirect('repair_master_login')
     
-    try:
-        # Get repair master and their technicians
-        repair_master = RepairMaster.objects.get(id=repair_master_id)
-        repair_requests = RepairRequest.objects.all().order_by('-created_at')
-        technicians = Technician.objects.filter(repair_master=repair_master).order_by('-created_at')
+#     try:
+#         # Get repair master and their technicians
+#         repair_master = RepairMaster.objects.get(id=repair_master_id)
+#         repair_requests = RepairRequest.objects.all().order_by('-created_at')
+#         technicians = Technician.objects.filter(repair_master=repair_master).order_by('-created_at')
         
-        context = {
-            'repair_master': repair_master,
-            'repair_requests': repair_requests,
-            'technicians': technicians,  # Add technicians to context
-            'title': 'Repair Master Dashboard'
-        }
-        return render(request, 'repair_master_dashboard.html', context)
+#         context = {
+#             'repair_master': repair_master,
+#             'repair_requests': repair_requests,
+#             'technicians': technicians,  # Add technicians to context
+#             'title': 'Repair Master Dashboard'
+#         }
+#         return render(request, 'repair_master_dashboard.html', context)
     
-    except RepairMaster.DoesNotExist:
-        messages.error(request, 'Invalid session')
-        return redirect('repair_master_login')
-    except Exception as e:
-        messages.error(request, f'Error: {str(e)}')
-        return redirect('repair_master_login')
+#     except RepairMaster.DoesNotExist:
+#         messages.error(request, 'Invalid session')
+#         return redirect('repair_master_login')
+#     except Exception as e:
+#         messages.error(request, f'Error: {str(e)}')
+#         return redirect('repair_master_login')
 
+# from django.shortcuts import render, redirect
+# from django.contrib import messages
+# from .models import  Technician
+
+# def add_technician(request):
+#     repair_master_id = request.session.get('repair_master_id')
+#     if not repair_master_id:
+#         messages.error(request, 'Please login first')
+#         return redirect('repair_master_login')
+    
+#     try:
+#         repair_master = RepairMaster.objects.get(id=repair_master_id)
+        
+#         if request.method == 'POST':
+#             name = request.POST.get('name')
+#             pin_no = request.POST.get('pin_no')
+            
+#             # Validate required fields
+#             if not all([name, pin_no]):
+#                 messages.error(request, 'All fields are required')
+#                 return redirect('add_technician')
+            
+#             # Check if PIN is unique
+#             if Technician.objects.filter(pin_no=pin_no).exists():
+#                 messages.error(request, 'This PIN number is already in use')
+#                 return redirect('add_technician')
+            
+#             # Create new technician
+#             technician = Technician.objects.create(
+#                 name=name,
+#                 pin_no=pin_no,
+#                 repair_master=repair_master
+#             )
+            
+#             messages.success(request, 'Technician added successfully!')
+#             return redirect('repair_master_dashboard')
+        
+#         return render(request, 'add_technician.html', {'repair_master': repair_master})
+    
+#     except RepairMaster.DoesNotExist:
+#         messages.error(request, 'Invalid session')
+#         return redirect('repair_master_login')
+#     except Exception as e:
+#         messages.error(request, f'Error: {str(e)}')
+#         return redirect('repair_master_dashboard')
+
+from django.shortcuts import render
+from .models import RepairRequest
+
+def repair_request_list(request):
+    repair_requests = RepairRequest.objects.all()  # Fetch all repair requests
+    return render(request, 'repair_requests_list.html', {'repair_requests': repair_requests})
+# views.py
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import RepairMaster, Technician
+  # Assuming you have a Technician model
 
 def add_technician(request):
-    repair_master_id = request.session.get('repair_master_id')
-    if not repair_master_id:
-        messages.error(request, 'Please login first')
-        return redirect('repair_master_login')
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        pin_number = request.POST.get('pin_no')
+        email = request.POST.get('email')
+
+        # Create a new Technician instance
+        technician = Technician(name=name, pin_number=pin_number, email=email)
+        try:
+            technician.save()
+            messages.success(request, 'Technician added successfully!')
+            return redirect('repair_master_dashboard')  # Redirect to a success page
+        except Exception as e:
+            messages.error(request, f'Error adding technician: {str(e)}')
+
+    return render(request, 'add_technician.html')
+def technician_login(request):
+       # Logic for technician login goes here
+       return render(request, 'technician_login.html')
+
+# def save_technician(request):
+#        if request.method == 'POST':
+#            name = request.POST['name']
+#            pin_code = request.POST['pin_code']
+#            email = request.POST['email']
+           
+#            # Create a new technician instance
+#            technician = Technician(name=name, pin_code=pin_code, email=email)
+#            technician.save()
+           
+#            messages.success(request, 'Technician added successfully!')
+#            return redirect('admin_dashboard')  # Redirect to the admin dashboard
+
+#        return render(request, 'add_technician.html')
+# projectsem4/electro/electron/myapp/views.py
+from django.shortcuts import render
+from .models import Technician
+
+def admin_dashboard(request):
+    technicians = Technician.objects.all()  # Fetch all technicians
+    return render(request, 'admin_dashboard.html', {'technicians': technicians})
+
+
+# projectsem4/electro/electron/myapp/views.py
+from django.shortcuts import render
+from .models import Technician
+
+def technician_management(request):
+    technicians = Technician.objects.all()  # Fetch all technicians
+    return render(request, 'technician_management.html', {'technicians': technicians})
+# projectsem4/electro/electron/myapp/views.py
+from django.shortcuts import render
+from .models import Order
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+ # Make sure to install WeasyPrint for PDF generation
+
+def order_management(request):
+    completed_orders = Order.objects.filter(status='completed')
+    pending_orders = Order.objects.filter(status='pending')
+
+    return render(request, 'order_management.html', {
+        'completed_orders': completed_orders,
+        'pending_orders': pending_orders,
+    })
+
+# def generate_invoice(request):
+#     # Logic to generate invoice based on monthly sales
+#     # This is a placeholder; you will need to implement the actual logic
+#     monthly_sales = Order.objects.filter(order_date__month=1)  # Example for January
+#     total_sales = sum(order.quantity for order in monthly_sales)
+
+#     html_string = render_to_string('invoice.html', {'monthly_sales': monthly_sales, 'total_sales': total_sales})
+#     pdf = HTML(string=html_string).write_pdf()
+
+#     response = HttpResponse(pdf, content_type='application/pdf')
+#     response['Content-Disposition'] = 'attachment; filename="invoice.pdf"'
+#     return response
+from django.shortcuts import render
+from .models import Warehouse 
+
+
+
+
+def warehouse_locations(request):
+    if request.method == 'POST':
+        # Get form data
+        name = request.POST.get('name')
+        address = request.POST.get('address')
+        contact_number = request.POST.get('contact')  # Note: form field name is 'contact'
+        capacity = request.POST.get('capacity')
+        description = request.POST.get('description')
+
+        try:
+            # Create new warehouse
+            warehouse = Warehouse.objects.create(
+                name=name,
+                address=address,
+                contact_number=contact_number,
+                capacity=capacity,
+                description=description
+            )
+            messages.success(request, 'Warehouse added successfully!')
+            return redirect('warehouse_locations')
+        except Exception as e:
+            messages.error(request, f'Error adding warehouse: {str(e)}')
+            
+    # GET request - display warehouses
+    warehouses = Warehouse.objects.all().order_by('-created_at')
+    return render(request, 'warehouse_locations.html', {'warehouses': warehouses})
+
+from django.shortcuts import render
+import pandas as pd
+import os
+import numpy as np
+
+def delivery_data(request):
+    # Load the dataset
+    csv_path = os.path.join(os.path.dirname(__file__), 'datasets', 'delivery_time_dataset.csv')
+    df = pd.read_csv(csv_path)
+
+    # Convert DataFrame to a list of dictionaries for easy rendering in the template
+    delivery_data = df.to_dict(orient='records')
+
+    return render(request, 'delivery_data.html', {'delivery_data': delivery_data})
+
+def predict_delivery_time(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    
+    # Construct the path to the delivery time dataset
+    dataset_path = os.path.join(os.path.dirname(__file__), 'datasets', 'delivery_time_dataset.csv')
     
     try:
-        repair_master = RepairMaster.objects.get(id=repair_master_id)
+        # Load the delivery time dataset
+        df = pd.read_csv(dataset_path)
         
-        if request.method == 'POST':
-            name = request.POST.get('name')
-            pin_no = request.POST.get('pin_no')
-            
-            # Validate required fields
-            if not all([name, pin_no]):
-                messages.error(request, 'All fields are required')
-                return redirect('add_technician')
-            
-            # Check if PIN is unique
-            if Technician.objects.filter(pin_no=pin_no).exists():
-                messages.error(request, 'This PIN number is already in use')
-                return redirect('add_technician')
-            
-            # Create new technician
-            technician = Technician.objects.create(
-                name=name,
-                pin_no=pin_no,
-                repair_master=repair_master
-            )
-            
-            messages.success(request, 'Technician added successfully!')
-            return redirect('repair_master_dashboard')
+        # Get the delivery location from the order
+        delivery_place = order.address.place.strip()
+        delivery_place = ''.join([i for i in delivery_place if not i.isdigit()]).strip()
+        delivery_place = delivery_place.replace('(', '').replace(')', '').strip()
         
-        return render(request, 'add_technician.html', {'repair_master': repair_master})
-    
-    except RepairMaster.DoesNotExist:
-        messages.error(request, 'Invalid session')
-        return redirect('repair_master_login')
+        # Get current time as order placement time
+        order_placement_time = order.created_at
+        
+        # Find similar deliveries in the dataset based on location
+        similar_deliveries = df[df['delivery_location'].str.contains(delivery_place, case=False, na=False)]
+        
+        if not similar_deliveries.empty:
+            # Calculate average delivery time for the location
+            avg_delivery_days = similar_deliveries['delivery_time'].mean()
+            
+            # Round to nearest whole number of days
+            delivery_days = round(avg_delivery_days)
+            
+            # Convert order placement time to datetime if it's not already
+            if isinstance(order_placement_time, str):
+                order_placement_time = datetime.strptime(order_placement_time, '%Y-%m-%d %H:%M:%S.%f')
+            
+            # Calculate predicted delivery datetime
+            predicted_datetime = order_placement_time + timedelta(days=delivery_days)
+            
+            # Ensure delivery time is between 9 AM and 5 PM
+            delivery_hour = random.randint(9, 16)  # 16 to allow for minutes
+            delivery_minute = random.choice([0, 15, 30, 45])
+            predicted_datetime = predicted_datetime.replace(hour=delivery_hour, minute=delivery_minute, second=0, microsecond=0)
+            
+            delivery_info = f"Expected delivery by {predicted_datetime.strftime('%d %b %Y %I:%M %p')}"
+            
+            # Log the prediction details
+            logger.info(f"Order {order_id} - Location: {delivery_place}")
+            logger.info(f"Average delivery days for location: {avg_delivery_days}")
+            logger.info(f"Predicted delivery time: {predicted_datetime}")
+            
+        else:
+            delivery_info = "Delivery estimate: 3-5 business days, delivery between 9:00 AM - 5:00 PM"
+            
     except Exception as e:
-        messages.error(request, f'Error: {str(e)}')
-        return redirect('repair_master_dashboard')
+        logger.error(f"Error predicting delivery time: {str(e)}")
+        delivery_info = "Delivery estimate: 3-5 business days, delivery between 9:00 AM - 5:00 PM"
+
+    return render(request, 'predict_delivery_time.html', {
+        'order': order,
+        'predicted_time': delivery_info,
+        'order_time': order.created_at.strftime('%d %b %Y %I:%M %p')
+    })
+
+@login_required
+def order_pdf(request, order_id):
+    """Generate PDF for a specific order"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Create a file-like buffer to receive PDF data
+    buffer = io.BytesIO()
+    
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    # Draw things on the PDF
+    # Header
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, 750, f"Order Invoice #{order.id}")
+    
+    # Customer Info
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 720, f"Customer: {order.user.get_full_name() or order.user.username}")
+    p.drawString(50, 700, f"Date: {order.created_at.strftime('%d %B %Y')}")
+    p.drawString(50, 680, f"Status: {order.status}")
+    
+    # Order Items
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, 640, "Items:")
+    
+    y = 620
+    p.setFont("Helvetica", 10)
+    for item in order.items.all():
+        p.drawString(70, y, f"{item.product.name} x {item.quantity} - ₹{item.product_total()}")
+        y -= 20
+    
+    # Total
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y-20, f"Total Amount: ₹{order.total_price}")
+    
+    # Delivery Address
+    if order.address:
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y-60, "Delivery Address:")
+        p.setFont("Helvetica", 10)
+        p.drawString(70, y-80, f"{order.address.street_address}")
+        p.drawString(70, y-100, f"{order.address.city}, {order.address.state}")
+        p.drawString(70, y-120, f"PIN: {order.address.pin_code}")
+    
+    # Close the PDF object cleanly
+    p.showPage()
+    p.save()
+    
+    # Get the value of the BytesIO buffer and write it to the response
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Create the HTTP response
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="order_{order.id}.pdf"'
+    response.write(pdf)
+    
+    return response
+
+def edit_repair_request(request, pk):
+    repair_request = get_object_or_404(RepairRequest, pk=pk)
+    
+    if request.method == 'POST':
+        # Update the repair request with form data
+        repair_request.device_type = request.POST.get('device_type')
+        repair_request.issue_description = request.POST.get('issue_description')
+        repair_request.status = request.POST.get('status')
+        repair_request.save()
+        return redirect('repair_request_list')
+    
+    return render(request, 'repair_request_form.html', {
+        'repair_request': repair_request
+    })
+
+def delete_repair_request(request, pk):
+    repair_request = get_object_or_404(RepairRequest, pk=pk)
+    
+    if request.method == 'POST':
+        repair_request.delete()
+        return redirect('repair_request_list')
+    
+    return render(request, 'confirm_delete.html', {
+        'repair_request': repair_request
+    })

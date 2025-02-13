@@ -1,97 +1,187 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Payment</title>
-</head>
-<body>
-<div>
-    <h2>Confirm Payment</h2>
-    <ul>
-        {% for item in cart_items %}
-            <li>{{ item.product.name }} - ₹{{ item.product.price }}</li>
-        {% endfor %}
-    </ul>
-    <p>Total: ₹{{ order.total_price }}</p>
-    <form id="payment-form" action="{% url 'payment' %}">
-     
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<div class="container mt-5">
-    <h2>Order Summary</h2>
-    <p>Total Amount: ₹{{ total_price }}</p>
-    <button id="rzp-button1" class="btn btn-primary">Pay with Razorpay</button>
-</div>
-
-<script>
-var options = {
-    "key": "{{ razorpay_merchant_key }}",
-    "amount": "{{ razorpay_amount }}",
-    "currency": "INR",
-    "name": "Your Store Name",
-    "description": "Order Payment",
-    "order_id": "{{ razorpay_order_id }}",
-    "handler": function (response) {
-        // Send payment details to your server
-        fetch('{{ callback_url }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.href = "{% url 'payment_success' %}";
-            } else {
-                window.location.href = "{% url 'payment_failure' %}";
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            window.location.href = "{% url 'payment_failure' %}";
-        });
-    },
-    "prefill": {
-        "name": "{{ request.user.get_full_name }}",
-        "email": "{{ request.user.email }}"
-    },
-    "theme": {
-        "color": "#3399cc"
-    }
-};
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
+    <!-- Add Bootstrap and custom styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .invoice-container {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px 0;
         }
-    }
-    return cookieValue;
-}
+        .invoice-header {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .payment-btn {
+            background: #3399cc;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 5px;
+            border: none;
+            transition: all 0.3s;
+        }
+        .payment-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <!-- Invoice Section -->
+        <div class="invoice-container" id="invoice-section">
+            <div class="invoice-header d-flex justify-content-between align-items-center">
+                <h2>Invoice</h2>
+                <button onclick="downloadInvoice()" class="btn btn-outline-primary">
+                    <i class="fas fa-download me-2"></i>Download Invoice
+                </button>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Bill To:</h5>
+                    <p>{{ request.user.get_full_name }}<br>
+                    {{ request.user.email }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h5>Order Details:</h5>
+                    <p>Order Date: {% now "F j, Y" %}<br>
+                    Order ID: {{ razorpay_order_id }}</p>
+                </div>
+            </div>
 
-var rzp1 = new Razorpay(options);
-document.getElementById('rzp-button1').onclick = function(e){
-    rzp1.open();
-    e.preventDefault();
-}
-</script>
+            <div class="table-responsive mb-4">
+                <table class="table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <td>{{ item.product.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.product.price }}</td>
+                            <td class="text-end">₹{{ item.get_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                            <td class="text-end"><strong>₹{{ total_price }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
 
+        <!-- Payment Button Section -->
+        <div class="text-center mt-4">
+            <button id="rzp-button1" class="payment-btn">
+                <i class="fas fa-credit-card me-2"></i>Pay with Razorpay
+            </button>
+        </div>
 
+        <!-- ... existing Razorpay script ... -->
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <script>
+            var options = {
+                "key": "{{ razorpay_merchant_key }}",
+                "amount": "{{ razorpay_amount }}",
+                "currency": "INR",
+                "name": "Your Store Name",
+                "description": "Order Payment",
+                "order_id": "{{ razorpay_order_id }}",
+                "handler": function (response) {
+                    // Send payment details to your server
+                    fetch('{{ callback_url }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            window.location.href = "{% url 'payment_success' %}";
+                        } else {
+                            window.location.href = "{% url 'payment_failure' %}";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        window.location.href = "{% url 'payment_failure' %}";
+                    });
+                },
+                "prefill": {
+                    "name": "{{ request.user.get_full_name }}",
+                    "email": "{{ request.user.email }}"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
 
-</form>
-</div>
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            var rzp1 = new Razorpay(options);
+            document.getElementById('rzp-button1').onclick = function(e){
+                rzp1.open();
+                e.preventDefault();
+            }
+
+            // Add invoice download functionality
+            function downloadInvoice() {
+                const invoiceContent = document.getElementById('invoice-section');
+                
+                // Create a new window for printing
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Invoice</title>');
+                printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(invoiceContent.innerHTML);
+                printWindow.document.write('</body></html>');
+                
+                // Wait for resources to load then print
+                printWindow.document.close();
+                printWindow.onload = function() {
+                    printWindow.print();
+                    printWindow.close();
+                };
+            }
+        </script>
+    </div>
 </body>
 </html> 
 

@@ -15,6 +15,7 @@
                             <th>Total Price</th>
                             <th>Items</th>
                             <th>Actions</th>
+                            <th>Predict Delivery Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -44,6 +45,11 @@
                                 <td>
                                     <a href="{% url 'order_pdf' order.id %}" class="btn btn-primary btn-sm">
                                         <i class="fas fa-print"></i> Print Order
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{% url 'predict_delivery_time' order.id %}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-clock"></i> Predict Delivery Time
                                     </a>
                                 </td>
                             </tr>
@@ -157,3 +163,55 @@
 {% endblock %} {% endcomment %}
 
  
+{% comment %} {% extends "base.html" %}
+{% load custom_filters %}
+
+{% block content %}
+<section class="orders-section">
+    <div class="container">
+        <h2 class="text-center my-4">Your Orders</h2>
+        {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Total Price</th>
+                            <th>Predicted Delivery Time (hours)</th> <!-- New Column -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td>{{ order.id }}</td>
+                                <td>{{ order.created_at|date:"d M Y H:i" }}</td>
+                                <td>
+                                    <span class="badge badge-{{ order.status|lower }}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                                <td>₹{{ order.total_price }}</td>
+                                <td>
+                                    {% comment %} {% if order_predictions|get:order.id %}
+                                        {{ order_predictions|get:order.id }} hours
+                                    {% else %}
+                                        N/A
+                                    {% endif %} {% endcomment %}
+                                {% comment %} </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <h3>No Orders Yet</h3>
+                <p>You haven't placed any orders yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %} {% endcomment %} 
+

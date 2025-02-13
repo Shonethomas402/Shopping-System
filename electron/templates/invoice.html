@@ -1,0 +1,46 @@
+<!-- projectsem4/electro/electron/templates/invoice.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        h2 {
+            color: #1a237e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Monthly Sales Invoice</h2>
+    <table>
+        <tr>
+            <th>Product Name</th>
+            <th>Quantity</th>
+            <th>Order Date</th>
+        </tr>
+        {% for order in monthly_sales %}
+        <tr>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>{{ order.order_date }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h3>Total Sales: {{ total_sales }}</h3>
+</body>
+</html>

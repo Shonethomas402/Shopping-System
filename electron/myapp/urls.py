@@ -1,16 +1,19 @@
 from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
-from .views import admin_dashboard,admin_login,custom_logout
+from .views import admin_dashboard,admin_login,custom_logout,repair_request_list,add_technician,technician_login
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView
 from .views import delivery_address_list, add_delivery_address, edit_delivery_address, delete_delivery_address
-
+from .views import technician_management,order_management
 urlpatterns = [
     path('', views.home, name='home'),
     path('register/', views.register, name='register'),
-    path('login/', views.login, name='login'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='login.html',
+        redirect_field_name='next'
+    ), name='login'),
     path('profile/', views.profile, name='profile'),
     path('search/', views.search, name='search'),
     path('oauth/', include('social_django.urls', namespace='social')),
@@ -18,7 +21,9 @@ urlpatterns = [
    # path('dashboard/', views.user_dashboard, name='dashboard'),
    # path('dashboard/category/<str:category>/', views.user_dashboard, name='product_category'),
     
-    path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(
+        next_page='login'
+    ), name='logout'),
     path('products/', views.Product_list, name='product_list'),  # Assuming you have a ProductListView
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
     path('admin-login/', admin_login, name='admin_login'),
@@ -95,13 +100,13 @@ urlpatterns = [
     path('decrease_quantity/<int:product_id>/', views.decrease_quantity, name='decrease_quantity'),
     path('remove_from_cart/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('save_for_later/<int:product_id>/', views.save_for_later, name='save_for_later'),
-     path('saved-for-later/', views.view_saved_items, name='view_saved_items'),  
+    #  path('saved-for-later/', views.view_saved_items, name='view_saved_items'),  
     #path('save_for_later_page/', views.save_for_later_page, name='save_for_later_page'),
     path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
     path('wishlist/', views.your_wishlist, name='your_wishlist'),
     path('cart/', views.view_cart, name='view_cart'),
-    path('remove_saved_items/<int:item_id>/', views.remove_saved_items, name='remove_saved_items'),
+    # path('remove_saved_items/<int:item_id>/', views.remove_saved_items, name='remove_saved_items'),
 
     path('delivery-address/', views.delivery_address_list, name='delivery_address_list'),
     path('confirm-order/', views.confirm_order, name='confirm_order'),
@@ -122,13 +127,35 @@ urlpatterns = [
     # path('update_profile/', views.update_profile, name='update_profile'),
     path('profile/', views.profile, name='profile'), 
     path('repair-service/', views.repair_service, name='repair_service'),
-    path('repair-master/login/', views.repair_master_login, name='repair_master_login'),
-    path('repair-master/register/', views.repair_master_register, name='repair_master_register'),
-    path('repair-master/logout/', views.repair_master_logout, name='repair_master_logout'),
-    path('repair-master/dashboard/', views.repair_master_dashboard, name='repair_master_dashboard'),
+    # path('repair-master/login/', views.repair_master_login, name='repair_master_login'),
+    # path('repair-master/register/', views.repair_master_register, name='repair_master_register'),
+    # path('repair-master/logout/', views.repair_master_logout, name='repair_master_logout'),
+    # path('repair-master/dashboard/', views.repair_master_dashboard, name='repair_master_dashboard'),
     path('repair-request/<int:request_id>/<str:status>/', views.update_repair_status, name='update_repair_status'),
     path('repair-master/add-technician/', views.add_technician, name='add_technician'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='login.html',
+        redirect_field_name='next'
+    ), name='login'),
+    
+    path('logout/', auth_views.LogoutView.as_view(
+        next_page='login'
+    ), name='logout'),
+    path('repair-requests/', repair_request_list, name='repair_request_list'),
+  
+    path('add-technician/', add_technician, name='add_technician'),
+    path('technician/login/', technician_login, name='technician_login'),
+    # path('save-technician/', save_technician, name='save_technician'),
+    path('technician-management/', technician_management, name='technician_management'),
 
+    path('warehouse-locations/', views.warehouse_locations, name='warehouse_locations'),
+    path('order-management/', order_management, name='order_management'),
+    # path('generate-invoice/', generate_invoice, name='generate_invoice'),
+    # ... other URL patterns ...
+    path('delivery-data/', views.delivery_data, name='delivery_data'),
+    path('predict-delivery-time/<int:order_id>/', views.predict_delivery_time, name='predict_delivery_time'),
+    path('repair-requests/edit/<int:pk>/', views.edit_repair_request, name='edit_repair_request'),
+    path('repair-requests/delete/<int:pk>/', views.delete_repair_request, name='delete_repair_request'),
 ]
     
 

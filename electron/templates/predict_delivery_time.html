@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="predict-delivery-time-section">
+    <div class="container">
+        <h2 class="text-center my-4">Delivery Time Prediction</h2>
+        <div class="card">
+            <div class="card-body text-center">
+                {% comment %} <h4>Order ID: {{ order.id }}</h4>
+                <h5>Delivery Location: {{ order.address.place }}</h5> {% endcomment %}
+                <div class="delivery-prediction">
+                    <h3>Delivery Time Prediction</h3>
+                    <p>Order ID: {{ order.id }}</p>
+                    <p>Order Placed: {{ order_time }}</p>
+                    <p>Delivery Location: {{ order.address.place }}</p>
+                    <p>{{ predicted_time }}</p>
+                    
+                    <small>* Delivery times are estimates based on historical data and may vary based on location and availability</small>
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'orders' %}" class="btn btn-primary">Back to Orders</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .predict-delivery-time-section {
+        padding: 2rem 0;
+    }
+    .card {
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        margin: 0 auto;
+        max-width: 600px;
+    }
+    .delivery-time {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+    }
+    .lead {
+        font-size: 1.5rem;
+        color: #007bff;
+        margin-bottom: 0;
+    }
+    .text-muted.small {
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %} 

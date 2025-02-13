@@ -1,6 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 30px;
+        }
+
+        .main-content h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        /* Table Styling */
+        .product-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            margin-top: 20px;
+        }
+
+        .product-table thead {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .product-table th,
+        .product-table td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        .product-table th {
+            font-weight: 500;
+        }
+
+        .product-table tbody tr {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .product-table tbody tr:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-table td {
+            vertical-align: middle;
+        }
+
+        /* Image Styling */
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        /* Button Styling */
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0069d9;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .empty-state p {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Admin Dashboard</h2>
+        <a href="{% url 'admin_dashboard' %}">Dashboard Overview</a>
+        <a href="{% url 'user_authentication' %}">User Authentication</a>
+        <a href="{% url 'user_management' %}">User Management</a>
+        <a href="{% url 'category_management' %}">Category Management</a>
+        <a href="{% url 'product_management' %}" class="active">Product Management</a>
+        <a href="{% url 'order_management' %}">Order Management</a>
+        <a href="{% url 'inventory_management' %}">Inventory Management</a>
+        <a href="{% url 'discounts_coupons' %}">Discounts & Coupons</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h2>Product Management</h2>
+        <a href="{% url 'product_add' %}" class="btn btn-add">Add New Product</a>
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Category</th>
+                    <th>Image</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.description|truncatechars:50 }}</td>
+                    <td>${{ product.price }}</td>
+                    <td>{{ product.stock }}</td>
+                    <td>{{ product.category.name }}</td>
+                    <td>
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                        {% else %}
+                            <span class="text-muted">No image</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'product_edit' product.pk %}" class="btn btn-edit">Edit</a>
+                        <a href="{% url 'product_delete' product.pk %}" class="btn btn-delete">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <p>No products available.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header i {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .sidebar-header span {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            margin-top: 30px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 20px;
+        }
+
+        /* Product Section */
+        .product-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            margin-bottom: 25px;
+        }
+
+        .section-header h2 {
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* Form Styles */
+        .add-product-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .add-product-form h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: #3498db;
+        }
+
+        /* Table Styles */
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .product-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .product-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-add {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* Product Image */
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+
+            .sidebar-header span,
+            .nav-item span {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 70px;
+            }
+
+            .form-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-bolt"></i>
+            <span>Electro Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{% url 'admin_dashboard' %}" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'category_management' %}" class="nav-item">
+                <i class="fas fa-tags"></i>
+                <span>Categories</span>
+            </a>
+            <a href="{% url 'product_management' %}" class="nav-item active">
+                <i class="fas fa-box"></i>
+                <span>Products</span>
+            </a>
+            <a href="{% url 'order_management' %}" class="nav-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Orders</span>
+            </a>
+            <a href="{% url 'inventory_management' %}" class="nav-item">
+                <i class="fas fa-warehouse"></i>
+                <span>Inventory</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="product-section">
+            <div class="section-header">
+                <h2><i class="fas fa-box"></i> Product Management</h2>
+            </div>
+
+            <!-- Add Product Form -->
+            <div class="add-product-form">
+                <h3><i class="fas fa-plus-circle"></i> Add New Product</h3>
+                <form method="POST" action="{% url 'product_add' %}" enctype="multipart/form-data" class="form-group">
+                    {% csrf_token %}
+                    <input type="text" name="name" placeholder="Product Name" class="form-input" required>
+                    <input type="number" name="price" placeholder="Price" class="form-input" required>
+                    <textarea name="description" placeholder="Description" class="form-input" required></textarea>
+                    <input type="number" name="stock" placeholder="Stock Quantity" class="form-input" required>
+                    <select name="category" class="form-input" required>
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="file" name="image" class="form-input" accept="image/*">
+                    <button type="submit" class="btn btn-add">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </form>
+            </div>
+
+            <!-- Products Table -->
+            <table class="product-table">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                            {% else %}
+                            <i class="fas fa-image" style="color: #ccc; font-size: 24px;"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>${{ product.price }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>
+                            <a href="{% url 'product_edit' product.pk %}" class="btn btn-edit">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'product_delete' product.pk %}" class="btn btn-delete">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center;">No products available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>  {% endcomment %}
 
 
-{% load static %}
+
+{% comment %} {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -237,4 +796,5 @@
         </table>
     </div>
 </body>
-</html>
+</html>  {% endcomment %}
+
