@@ -176,6 +176,120 @@
                 overflow-x: auto;
             }
         }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        .btn-pdf {
+            position: relative;
+            background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.2);
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .pdf-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-text {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-shine {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.1) 45%,
+                rgba(255, 255, 255, 0.2) 50%,
+                rgba(255, 255, 255, 0.1) 55%,
+                transparent 100%
+            );
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+
+        .btn-pdf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.3);
+            background: linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%);
+        }
+
+        .btn-pdf:hover .pdf-icon {
+            transform: scale(1.1) rotate(-10deg);
+        }
+
+        .btn-pdf:hover .btn-shine {
+            left: 100%;
+            transition: all 0.5s ease;
+        }
+
+        /* Add animation for download click */
+        @keyframes downloadPulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(0.95);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .btn-pdf:active {
+            animation: downloadPulse 0.3s ease;
+        }
+
+        /* Add loading state */
+        .btn-pdf.loading {
+            background: linear-gradient(135deg, #cccccc 0%, #999999 100%);
+            pointer-events: none;
+        }
+
+        .btn-pdf.loading .btn-content {
+            opacity: 0.7;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .btn-pdf {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -191,7 +305,16 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <h2>Order Management</h2>
+        <div class="header-actions">
+            <h2>Order Management</h2>
+            <a href="{% url 'generate_orders_report_pdf' %}" class="btn btn-pdf" id="downloadBtn">
+                <span class="btn-content">
+                    <i class="fas fa-file-pdf pdf-icon"></i>
+                    <span class="btn-text">Download PDF Report</span>
+                </span>
+                <span class="btn-shine"></span>
+            </a>
+        </div>
 
         <!-- Display Messages -->
         {% if messages %}
@@ -220,7 +343,7 @@
                         {% for order in completed_orders %}
                         <tr>
                             <td>{{ order.user.username }}</td>
-                            <td>${{ order.total_price }}</td>
+                            <td>₹{{ order.total_price }}</td>
                             <td>
                                 <span class="status-completed">{{ order.status }}</span>
                             </td>
@@ -267,6 +390,21 @@
             </div>
         </div>
     </div>
+
+    <!-- Add this JavaScript for loading state -->
+    <script>
+    document.getElementById('downloadBtn').addEventListener('click', function(e) {
+        this.classList.add('loading');
+        const btnText = this.querySelector('.btn-text');
+        const originalText = btnText.textContent;
+        btnText.textContent = 'Generating PDF...';
+        
+        setTimeout(() => {
+            this.classList.remove('loading');
+            btnText.textContent = originalText;
+        }, 3000);
+    });
+    </script>
 </body>
 </html>
 

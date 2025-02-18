@@ -1,12 +1,14 @@
 from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
-from .views import admin_dashboard,admin_login,custom_logout,repair_request_list,add_technician,technician_login
+from .views import admin_dashboard,admin_login,custom_logout,repair_request_list,add_technician
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView
 from .views import delivery_address_list, add_delivery_address, edit_delivery_address, delete_delivery_address
-from .views import technician_management,order_management
+from .views import order_management,tech_login,technician_management,technician_login,deliveryboy_management
+
 urlpatterns = [
     path('', views.home, name='home'),
     path('register/', views.register, name='register'),
@@ -46,7 +48,7 @@ urlpatterns = [
     
     
 
-    path('cart/', views.view_cart, name='view_cart'),
+    path('cart/', views.view_cart, name='cart'),
     path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('remove_from_cart/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('checkout/', views.checkout, name='checkout'),
@@ -69,8 +71,8 @@ urlpatterns = [
 
     path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
     path('user_manage/', views.user_manage, name='user_manage'),
-    path('block_user/<int:user_id>/', views.block_user, name='block_user'),
-    path('unblock_user/<int:user_id>/', views.unblock_user, name='unblock_user'),
+    #path('user-management/suspend/<int:user_id>/', views.suspend_user, name='suspend_user'),
+    # path('user-management/unsuspend/<int:user_id>/', views.unsuspend_user, name='unsuspend_user'),
 
 
     path('category/<str:category_name>/', views.product_category, name='product_category'),
@@ -92,7 +94,7 @@ urlpatterns = [
     path('payment/', views.payment_response, name='payment'),  # Razorpay payment
     path('payment-success/', views.payment_success, name='payment_success'),
     path('payment-failure/', views.payment_failure, name='payment_failure'),
-    path('cart/', views.cart_view, name='cart'),
+    path('cart/', views.view_cart, name='cart'),
 
     #path('cart/', views.cart, name='cart'),
     path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
@@ -154,8 +156,21 @@ urlpatterns = [
     # ... other URL patterns ...
     path('delivery-data/', views.delivery_data, name='delivery_data'),
     path('predict-delivery-time/<int:order_id>/', views.predict_delivery_time, name='predict_delivery_time'),
-    path('repair-requests/edit/<int:pk>/', views.edit_repair_request, name='edit_repair_request'),
-    path('repair-requests/delete/<int:pk>/', views.delete_repair_request, name='delete_repair_request'),
+    # path('repair-requests/edit/<int:pk>/', views.edit_repair_request, name='edit_repair_request'),
+    # path('repair-requests/delete/<int:pk>/', views.delete_repair_request, name='delete_repair_request'),
+    path('tech-login/', views.tech_login, name='tech_login'),
+    # path('techdashboard/', techdashboard_view, name='techdashboard'),
+    path('tech-dashboard/', views.tech_dashboard, name='tech_dashboard'), 
+
+    path('accept-repair-request/<int:request_id>/', views.accept_repair_request, name='accept_repair_request'),
+    path('delete-repair-request/<int:request_id>/', views.delete_repair_request, name='delete_repair_request'),
+    path('complete-repair-request/<int:request_id>/', views.complete_repair_request, name='complete_repair_request'),
+    path('generate-orders-report-pdf/', views.generate_orders_report_pdf, name='generate_orders_report_pdf'),
+    path('deliveryboy-management/', views.deliveryboy_management, name='deliveryboy_management'),
+    path('add-deliveryboy/', views.add_deliveryboy, name='add_deliveryboy'),
+    path('delete-deliveryboy/<int:id>/', views.delete_deliveryboy, name='delete_deliveryboy'),
+    path('deliveryboy-dashboard/', views.deliveryboy_dashboard, name='deliveryboy_dashboard'),
+    path('image-search/', views.image_search, name='image_search'),
 ]
     
 

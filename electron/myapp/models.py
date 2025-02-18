@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
+import numpy as np
 
 
 
@@ -184,16 +185,6 @@ class RepairRequest(models.Model):
         default='pending'
     )
 
-    # assigned_technician = models.ForeignKey(
-    #     Technician, 
-    #     on_delete=models.SET_NULL, 
-    #     null=True, 
-    #     blank=True, 
-    #     related_name='repair_requests'
-    # )
-    
-    # completion_date = models.DateTimeField(null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -238,4 +229,26 @@ class Warehouse(models.Model):
 
     def __str__(self):
         return self.name
+
+class DeliveryBoy(models.Model):
+    id = models.AutoField(primary_key=True)  # Remove null=True and blank=True
+    name = models.CharField(max_length=15)
+    pin_number = models.CharField(max_length=7, unique=True)
+    email = models.EmailField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+class ProductImageFeature(models.Model):
+    product = models.OneToOneField(Product, on_delete=models.CASCADE)
+    features = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def set_features(self, feature_array):
+        self.features = feature_array.tobytes()
+
+    def get_features(self):
+        return np.frombuffer(self.features, dtype=np.float32)
+
 

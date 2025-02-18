@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import authenticate
 from .forms import UserRegistrationForm, UserLoginForm
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import *
 from django.db.models import Prefetch
 from django.contrib.auth.models import User
@@ -21,6 +21,12 @@ import pandas as pd
 import os
 import random
 from datetime import datetime, timedelta
+from django.utils import timezone
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from io import BytesIO
+from django.http import HttpResponse
+from django.db.models import Q
 
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -132,9 +138,57 @@ def profile(request):
     return render(request, 'profile.html')  # You'll need a profile template
 
 def search(request):
-    query = request.GET.get('query')
-    # Process the search query
-    return render(request, 'search.html', {'query': query})  # You'll need a search template
+    query = request.GET.get('q', '')
+    category = request.GET.get('category')
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    sort = request.GET.get('sort')
+
+    # Base queryset
+    products = Product.objects.all()
+
+    # Apply search query
+    if query:
+        products = products.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query)
+        )
+
+    # Apply category filter
+    if category:
+        products = products.filter(category_id=category)
+
+    # Apply price range filter
+    if min_price:
+        products = products.filter(price__gte=min_price)
+    if max_price:
+        products = products.filter(price__lte=max_price)
+
+    # Apply sorting
+    if sort:
+        if sort == 'price_low':
+            products = products.order_by('price')
+        elif sort == 'price_high':
+            products = products.order_by('-price')
+        elif sort == 'name_asc':
+            products = products.order_by('name')
+        elif sort == 'name_desc':
+            products = products.order_by('-name')
+
+    # Get categories for filter
+    categories = Category.objects.all()
+
+    context = {
+        'products': products,
+        'categories': categories,
+        'query': query,
+        'selected_category': category,
+        'min_price': min_price,
+        'max_price': max_price,
+        'sort': sort,
+    }
+
+    return render(request, 'search.html', context)
 
 from django.shortcuts import render, redirect
 from .models import Product, Category  # Ensure you import necessary models
@@ -173,9 +227,17 @@ def admin_required(user):
 @login_required
 @user_passes_test(admin_required)  # Add this decorator
 def admin_dashboard(request):
+    """
+    View for the admin dashboard
+    """
     if not request.user.is_superuser:
         return redirect('user_dashboard')
-    return render(request, 'admin_dashboard.html')
+    
+    context = {
+        'user': request.user,
+        # Add any other context data needed for the admin dashboard
+    }
+    return render(request, 'admin_dashboard.html', context)
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login
@@ -252,8 +314,51 @@ def product_management(request):
    products = Product.objects.all()
    return render(request, 'product_management.html' , {'products': products}) 
 
+from django.shortcuts import render
+from .models import Order, OrderItem
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def order_management(request):
-    return render(request, 'order_management.html')
+    # Get all orders and separate them by status
+    completed_orders = Order.objects.filter(status='Completed').order_by('-created_at')
+    pending_orders = Order.objects.filter(status='Pending').order_by('-created_at')
+    
+    context = {
+        'completed_orders': completed_orders,
+        'pending_orders': pending_orders,
+    }
+    return render(request, 'order_management.html', context)
+@login_required
+def generate_orders_report_pdf(request):
+    try:
+        completed_orders = Order.objects.filter(status='Completed').order_by('-created_at')
+        pending_orders = Order.objects.filter(status='Pending').order_by('-created_at')
+        
+        template = get_template('order_pdf_template.html')
+        context = {
+            'completed_orders': completed_orders,
+            'pending_orders': pending_orders,
+            'total_completed': completed_orders.count(),
+            'total_pending': pending_orders.count(),
+            'now': timezone.now(),
+        }
+        
+        html = template.render(context)
+        result = BytesIO()
+        
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            filename = f"orders_report_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        
+        return HttpResponse('Error generating PDF', status=400)
+    
+    except Exception as e:
+        messages.error(request, f'Error generating PDF: {str(e)}')
+        return redirect('order_management')
 
 def inventory_management(request):
     return render(request, 'inventory_management.html')
@@ -730,7 +835,6 @@ import logging
 
 # Configure logger
 logger = logging.getLogger(__name__)
-@login_required
 def confirm_order(request):
     try:
         # Check if address is selected
@@ -1203,7 +1307,14 @@ def change_password(request):
     return render(request, 'change_password.html', {
         'form': form
     })
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import RepairRequest
 def repair_service(request):
+    # Get completed repair requests
+    completed_requests = RepairRequest.objects.filter(status='completed').order_by('-created_at')
+    
     if request.method == 'POST':
         try:
             # Get form data
@@ -1215,7 +1326,7 @@ def repair_service(request):
             # Validate required fields
             if not all([device_type, proof_of_purchase, issue_description, pin_number]):
                 messages.error(request, 'All fields are required')
-                return redirect('repair_service')
+                return render(request, 'repair_service.html', {'completed_requests': completed_requests})
 
             # Create repair request
             repair_request = RepairRequest.objects.create(
@@ -1230,9 +1341,27 @@ def repair_service(request):
 
         except Exception as e:
             messages.error(request, f'Error submitting repair request: {str(e)}')
-            return redirect('repair_service')
+            return render(request, 'repair_service.html', {'completed_requests': completed_requests})
 
-    return render(request, 'repair_service.html')
+    return render(request, 'repair_service.html', {'completed_requests': completed_requests})
+
+# def repair_service(request):
+#     if request.method == 'POST':
+#         if 'delete_request' in request.POST:
+#             request_id = request.POST.get('request_id')
+#             try:
+#                 repair_request = RepairRequest.objects.get(id=request_id)
+#                 repair_request.delete()
+#                 messages.success(request, 'Repair request deleted successfully.')
+#             except RepairRequest.DoesNotExist:
+#                 messages.error(request, 'Repair request not found.')
+#             return redirect('repair_service')
+    
+#     completed_requests = RepairRequest.objects.filter(status='completed').order_by('-created_at')
+#     context = {
+#         'completed_requests': completed_requests,
+#     }
+#     return render(request, 'repair_service.html', context)
 
 def update_repair_status(request, request_id, status):
     """Handle repair request status updates"""
@@ -1387,7 +1516,7 @@ def update_repair_status(request, request_id, status):
 #         messages.error(request, f'Error: {str(e)}')
 #         return redirect('repair_master_login')
 
-# from django.shortcuts import render, redirect
+# from django.shortcuts import render, redirect, get_object_or_404
 # from django.contrib import messages
 # from .models import  Technician
 
@@ -1433,12 +1562,25 @@ def update_repair_status(request, request_id, status):
 #         messages.error(request, f'Error: {str(e)}')
 #         return redirect('repair_master_dashboard')
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib import messages
 from .models import RepairRequest
 
 def repair_request_list(request):
-    repair_requests = RepairRequest.objects.all()  # Fetch all repair requests
+    if request.method == 'POST':
+        if 'delete_request' in request.POST:
+            request_id = request.POST.get('request_id')
+            try:
+                repair_request = RepairRequest.objects.get(id=request_id)
+                repair_request.delete()
+                messages.success(request, 'Repair request deleted successfully.')
+            except RepairRequest.DoesNotExist:
+                messages.error(request, 'Repair request not found.')
+            return redirect('repair_request_list')
+    
+    repair_requests = RepairRequest.objects.all().order_by('-created_at')
     return render(request, 'repair_requests_list.html', {'repair_requests': repair_requests})
+
 # views.py
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -1454,74 +1596,253 @@ def add_technician(request):
         technician = Technician(name=name, pin_number=pin_number, email=email)
         try:
             technician.save()
-            messages.success(request, 'Technician added successfully!')
-            return redirect('repair_master_dashboard')  # Redirect to a success page
+            messages.success(request, f'Technician {name} added successfully!')
+            return redirect('technician_management')  # Redirect to technician management page
         except Exception as e:
             messages.error(request, f'Error adding technician: {str(e)}')
+            return redirect('add_technician')  # Redirect back to add form if there's an error
 
     return render(request, 'add_technician.html')
-def technician_login(request):
-       # Logic for technician login goes here
-       return render(request, 'technician_login.html')
-
-# def save_technician(request):
-#        if request.method == 'POST':
-#            name = request.POST['name']
-#            pin_code = request.POST['pin_code']
-#            email = request.POST['email']
-           
-#            # Create a new technician instance
-#            technician = Technician(name=name, pin_code=pin_code, email=email)
-#            technician.save()
-           
-#            messages.success(request, 'Technician added successfully!')
-#            return redirect('admin_dashboard')  # Redirect to the admin dashboard
-
-#        return render(request, 'add_technician.html')
-# projectsem4/electro/electron/myapp/views.py
-from django.shortcuts import render
-from .models import Technician
-
-def admin_dashboard(request):
-    technicians = Technician.objects.all()  # Fetch all technicians
-    return render(request, 'admin_dashboard.html', {'technicians': technicians})
 
 
-# projectsem4/electro/electron/myapp/views.py
-from django.shortcuts import render
-from .models import Technician
+# def tech_login(request):
+#     if request.method == 'POST':
+#         name = request.POST.get('name').strip()
+#         email = request.POST.get('email').strip().lower()
+#         pin = request.POST.get('pin').strip()
+#         role = request.POST.get('role')
+
+#         try:
+#             # Print form data for debugging
+#             print(f"Form data - Name: '{name}', Email: '{email}', PIN: '{pin}'")
+            
+#             # First try to find any similar email addresses to help with typos
+#             similar_techs = Technician.objects.filter(email__icontains=email.split('@')[0])
+            
+#             if similar_techs.exists():
+#                 # If we found similar emails, check if any match exactly
+#                 tech = similar_techs.filter(email__iexact=email).first()
+#                 if tech:
+#                     if tech.name.lower() == name.lower() and tech.pin_number == pin:
+#                         # Successful login
+#                         request.session['technician_id'] = tech.id
+#                         request.session['technician_name'] = tech.name
+#                         request.session['technician_role'] = role
+#                         messages.success(request, 'Login successful!')
+#                         return redirect('tech_dashboard')
+#                     else:
+#                         if tech.name.lower() != name.lower():
+#                             messages.error(request, 'Name does not match our records.')
+#                         else:
+#                             messages.error(request, 'Invalid PIN number.')
+#                 else:
+#                     # Found similar emails but none match exactly
+#                     suggestions = [t.email for t in similar_techs]
+#                     messages.error(request, f'Did you mean one of these emails? {", ".join(suggestions)}')
+#             else:
+#                 messages.error(request, 'No technician found with this email address.')
+            
+#             # Print all technicians for debugging
+#             print("\nAll technicians in database:")
+#             for tech in Technician.objects.all():
+#                 print(f"DB Tech - Name: '{tech.name}', Email: '{tech.email}', PIN: '{tech.pin_number}'")
+            
+#         except Exception as e:
+#             print(f"Login error: {str(e)}")
+#             messages.error(request, f'An error occurred: {str(e)}')
+
+#     return render(request, 'tech_login.html')
+
+
+
+# @login_required
+# def tech_dashboard(request):
+#     if request.method == 'POST':
+#         request_id = request.POST.get('request_id')
+#         action = request.POST.get('action')
+        
+#         try:
+#             repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+#             if action == 'accept':
+#                 repair_request.status = 'approved'
+#                 messages.success(request, 'Repair request accepted successfully.')
+            
+#             elif action == 'reject':
+#                 repair_request.status = 'rejected'
+#                 messages.warning(request, 'Repair request rejected.')
+            
+#             elif action == 'complete':
+#                 repair_request.status = 'completed'
+#                 messages.success(request, 'Repair request marked as completed.')
+            
+#             repair_request.save()
+#             return redirect('tech_dashboard')
+            
+#         except Exception as e:
+#             messages.error(request, f'Error processing request: {str(e)}')
+    
+#     # Get lists of requests for display
+#     pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
+#     active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
+    
+#     context = {
+#         'pending_requests': pending_requests,
+#         'active_requests': active_requests,
+#         'technician': request.user,  # Add logged-in technician info
+#     }
+    
+#     return render(request, 'techdashboard.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Technician, DeliveryBoy, RepairRequest
+
+def tech_login(request):
+    if request.method == 'POST':
+        name = request.POST.get('name').strip()
+        email = request.POST.get('email').strip().lower()
+        pin = request.POST.get('pin').strip()
+        role = request.POST.get('role')
+
+        # Handle Delivery Boy Login
+        if role == 'deliveryboy':
+            try:
+                deliveryboy = DeliveryBoy.objects.get(email=email)
+                if deliveryboy.name.lower() == name.lower() and deliveryboy.pin_number == pin:
+                    request.session['deliveryboy_id'] = deliveryboy.id
+                    request.session['deliveryboy_name'] = deliveryboy.name
+                    request.session['role'] = 'deliveryboy'
+                    messages.success(request, 'Login successful!')
+                    return redirect('deliveryboy_dashboard')
+                else:
+                    if deliveryboy.name.lower() != name.lower():
+                        messages.error(request, 'Name does not match our records.')
+                    else:
+                        messages.error(request, 'Invalid PIN number.')
+            except DeliveryBoy.DoesNotExist:
+                messages.error(request, 'No delivery boy found with this email address.')
+
+        # Handle Technician Login
+        elif role == 'technician':
+            try:
+                similar_techs = Technician.objects.filter(email__icontains=email.split('@')[0])
+                
+                if similar_techs.exists():
+                    tech = similar_techs.filter(email__iexact=email).first()
+                    if tech:
+                        if tech.name.lower() == name.lower() and tech.pin_number == pin:
+                            request.session['technician_id'] = tech.id
+                            request.session['technician_name'] = tech.name
+                            request.session['technician_role'] = role
+                            messages.success(request, 'Login successful!')
+                            return redirect('tech_dashboard')
+                        else:
+                            if tech.name.lower() != name.lower():
+                                messages.error(request, 'Name does not match our records.')
+                            else:
+                                messages.error(request, 'Invalid PIN number.')
+                    else:
+                        suggestions = [t.email for t in similar_techs]
+                        messages.error(request, f'Did you mean one of these emails? {", ".join(suggestions)}')
+                else:
+                    messages.error(request, 'No technician found with this email address.')
+            
+            except Exception as e:
+                print(f"Login error: {str(e)}")
+                messages.error(request, f'An error occurred: {str(e)}')
+
+    return render(request, 'tech_login.html')
+
+@login_required
+def tech_dashboard(request):
+    if request.method == 'POST':
+        request_id = request.POST.get('request_id')
+        action = request.POST.get('action')
+        
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            if action == 'accept':
+                repair_request.status = 'approved'
+                messages.success(request, 'Repair request accepted successfully.')
+            elif action == 'reject':
+                repair_request.status = 'rejected'
+                messages.warning(request, 'Repair request rejected.')
+            elif action == 'complete':
+                repair_request.status = 'completed'
+                messages.success(request, 'Repair request marked as completed.')
+            
+            repair_request.save()
+            return redirect('tech_dashboard')
+            
+        except Exception as e:
+            messages.error(request, f'Error processing request: {str(e)}')
+    
+    pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
+    active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
+    
+    context = {
+        'pending_requests': pending_requests,
+        'active_requests': active_requests,
+        'technician': request.user,
+    }
+    
+    return render(request, 'techdashboard.html', context)
+
+def deliveryboy_dashboard(request):
+    if 'deliveryboy_id' not in request.session:
+        messages.error(request, 'Please login first!')
+        return redirect('tech_login')
+    
+    deliveryboy_name = request.session.get('deliveryboy_name')
+    # Add any delivery-related queries here
+    # Example: pending_deliveries = Delivery.objects.filter(status='pending')
+    
+    context = {
+        'deliveryboy_name': deliveryboy_name,
+        # Add other context data as needed
+        # 'pending_deliveries': pending_deliveries,
+    }
+    return render(request, 'deliveryboy_dashboard.html', context)
+
+def logout_user(request):
+    request.session.flush()
+    messages.success(request, 'Logged out successfully!')
+    return redirect('tech_login')
 
 def technician_management(request):
-    technicians = Technician.objects.all()  # Fetch all technicians
+    if request.method == 'POST':
+        if 'delete_technician' in request.POST:
+            technician_id = request.POST.get('technician_id')
+            try:
+                technician = Technician.objects.get(id=technician_id)
+                technician.delete()
+                messages.success(request, f'Technician {technician.name} deleted successfully.')
+            except Technician.DoesNotExist:
+                messages.error(request, 'Technician not found.')
+            return redirect('technician_management')
+    
+    technicians = Technician.objects.all().order_by('name')
     return render(request, 'technician_management.html', {'technicians': technicians})
-# projectsem4/electro/electron/myapp/views.py
-from django.shortcuts import render
-from .models import Order
-from django.http import HttpResponse
-from django.template.loader import render_to_string
- # Make sure to install WeasyPrint for PDF generation
 
-def order_management(request):
-    completed_orders = Order.objects.filter(status='completed')
-    pending_orders = Order.objects.filter(status='pending')
+ # Ensure you have this template# Ensure you have this template 
 
-    return render(request, 'order_management.html', {
-        'completed_orders': completed_orders,
-        'pending_orders': pending_orders,
-    })
+def technician_login(request):
+       if request.method == 'POST':
+           # Logic to handle login
+           username = request.POST.get('username')
+           password = request.POST.get('password')
+           # Add your authentication logic here
+           if username and password:  # Replace with actual validation
+               # Assuming successful login, redirect to the dashboard
+               messages.success(request, 'Login successful!')
+               return redirect('tech_dashboard')  # Change to your actual dashboard URL name
+           else:
+               messages.error(request, 'Invalid credentials. Please try again.')
+               return render(request, 'technician_login.html')
 
-# def generate_invoice(request):
-#     # Logic to generate invoice based on monthly sales
-#     # This is a placeholder; you will need to implement the actual logic
-#     monthly_sales = Order.objects.filter(order_date__month=1)  # Example for January
-#     total_sales = sum(order.quantity for order in monthly_sales)
-
-#     html_string = render_to_string('invoice.html', {'monthly_sales': monthly_sales, 'total_sales': total_sales})
-#     pdf = HTML(string=html_string).write_pdf()
-
-#     response = HttpResponse(pdf, content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="invoice.pdf"'
-#     return response
 from django.shortcuts import render
 from .models import Warehouse 
 
@@ -1690,28 +2011,206 @@ def order_pdf(request, order_id):
     
     return response
 
-def edit_repair_request(request, pk):
-    repair_request = get_object_or_404(RepairRequest, pk=pk)
-    
-    if request.method == 'POST':
-        # Update the repair request with form data
-        repair_request.device_type = request.POST.get('device_type')
-        repair_request.issue_description = request.POST.get('issue_description')
-        repair_request.status = request.POST.get('status')
-        repair_request.save()
-        return redirect('repair_request_list')
-    
-    return render(request, 'repair_request_form.html', {
-        'repair_request': repair_request
-    })
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import RepairRequest
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
-def delete_repair_request(request, pk):
-    repair_request = get_object_or_404(RepairRequest, pk=pk)
-    
+@login_required
+def accept_repair_request(request, request_id):
     if request.method == 'POST':
-        repair_request.delete()
-        return redirect('repair_request_list')
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            # Update the status to 'approved'
+            repair_request.status = 'approved'
+            repair_request.save()
+            
+            messages.success(request, 'Repair request accepted successfully.')
+            return redirect('tech_dashboard')
+        
+        except Exception as e:
+            messages.error(request, f'Error accepting repair request: {str(e)}')
+            return redirect('tech_dashboard')
     
-    return render(request, 'confirm_delete.html', {
-        'repair_request': repair_request
+    return redirect('tech_dashboard')
+
+@login_required
+def delete_repair_request(request, request_id):
+    if request.method == 'POST':
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            # Delete the repair request
+            repair_request.delete()
+            
+            messages.success(request, 'Repair request deleted successfully.')
+            return redirect('tech_dashboard')
+        
+        except Exception as e:
+            messages.error(request, f'Error deleting repair request: {str(e)}')
+            return redirect('tech_dashboard')
+    
+    return redirect('tech_dashboard')
+def complete_repair_request(request, request_id):
+    if request.method == 'POST':
+        repair_request = RepairRequest.objects.get(id=request_id)
+        repair_request.status = 'completed'
+        repair_request.save()
+        messages.success(request, 'Repair request has been marked as completed.')
+        return redirect('tech_dashboard')
+
+@login_required
+def user_manage(request):
+    users = User.objects.all()
+    return render(request, 'user_manage.html', {'users': users})
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import DeliveryBoy
+
+def deliveryboy_management(request):
+    deliveryboys = DeliveryBoy.objects.all()
+    return render(request, 'deliveryboy_management.html', {'deliveryboys': deliveryboys})
+
+def add_deliveryboy(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        pin_number = request.POST.get('pin')
+        
+        try:
+            DeliveryBoy.objects.create(
+                name=name,
+                email=email,
+                pin_number=pin_number
+            )
+            messages.success(request, 'Delivery Boy added successfully!')
+            return redirect('deliveryboy_management')
+        except Exception as e:
+            messages.error(request, f'Error adding delivery boy: {str(e)}')
+    
+    return render(request, 'add_deliveryboy.html')   
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import DeliveryBoy
+
+def deliveryboy_management(request):
+    if request.method == 'POST':
+        deliveryboy_id = request.POST.get('deliveryboy_id')
+        if deliveryboy_id:
+            try:
+                deliveryboy = DeliveryBoy.objects.get(id=deliveryboy_id)
+                deliveryboy.delete()
+                messages.success(request, 'Delivery Boy deleted successfully!')
+            except DeliveryBoy.DoesNotExist:
+                messages.error(request, 'Delivery Boy not found!')
+            return redirect('deliveryboy_management')
+
+    deliveryboys = DeliveryBoy.objects.all()
+    return render(request, 'deliveryboy_management.html', {'deliveryboys': deliveryboys})
+
+def add_deliveryboy(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        pin_number = request.POST.get('pin')
+        
+        try:
+            DeliveryBoy.objects.create(
+                name=name,
+                email=email,
+                pin_number=pin_number
+            )
+            messages.success(request, 'Delivery Boy added successfully!')
+            return redirect('deliveryboy_management')
+        except Exception as e:
+            messages.error(request, f'Error adding delivery boy: {str(e)}')
+            return redirect('add_deliveryboy')
+    
+    return render(request, 'add_deliveryboy.html')
+
+def delete_deliveryboy(request, id):
+    try:
+        deliveryboy = DeliveryBoy.objects.get(id=id)
+        deliveryboy.delete()
+        messages.success(request, 'Delivery Boy deleted successfully!')
+    except DeliveryBoy.DoesNotExist:
+        messages.error(request, 'Delivery Boy not found!')
+    return redirect('deliveryboy_management') 
+
+from django.shortcuts import render
+from django.contrib import messages
+from django.core.files.storage import FileSystemStorage
+from .models import Product
+from PIL import Image
+import numpy as np
+from scipy.spatial.distance import cosine
+import io
+
+def image_search(request):
+    """
+    View function for handling image-based product search using PIL
+    """
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        try:
+            # Get uploaded image
+            image_file = request.FILES['search_image']
+            fs = FileSystemStorage()
+            
+            # Save uploaded image temporarily
+            filename = fs.save(f"temp/{image_file.name}", image_file)
+            uploaded_file_path = fs.path(filename)
+            
+            # Load and process search image
+            search_img = Image.open(uploaded_file_path)
+            search_img = search_img.convert('RGB')
+            search_img = search_img.resize((224, 224))
+            search_array = np.array(search_img).flatten()
+
+            # Get all products
+            products = Product.objects.all()
+            similar_products = []
+
+            # Compare with each product
+            for product in products:
+                if product.image:
+                    try:
+                        # Process product image
+                        product_img = Image.open(product.image.path)
+                        product_img = product_img.convert('RGB')
+                        product_img = product_img.resize((224, 224))
+                        product_array = np.array(product_img).flatten()
+
+                        # Calculate similarity
+                        similarity = 1 - cosine(search_array, product_array)
+                        similar_products.append((product, similarity))
+                    except Exception as e:
+                        continue
+
+            # Clean up temporary file
+            fs.delete(filename)
+
+            # Sort products by similarity and get top 6
+            similar_products.sort(key=lambda x: x[1], reverse=True)
+            recommended_products = [p[0] for p in similar_products[:6]]
+
+            return render(request, 'image_search.html', {
+                'products': recommended_products,
+                'show_results': True,
+                'title': 'Search Results'
+            })
+
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            return render(request, 'image_search.html', {
+                'title': 'Search by Image',
+                'error': str(e)
+            })
+
+    # GET request - show search form
+    return render(request, 'image_search.html', {
+        'title': 'Search by Image'
     })

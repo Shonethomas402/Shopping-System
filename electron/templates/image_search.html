@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div style="padding-top:90px;background-color:#f8f9fa">
+    <div style="padding:20px;max-width:1200px;margin:0 auto">
+        <!-- Upload Section -->
+        <div style="background:#fff;padding:20px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin-bottom:25px">
+            <h3 style="font-size:22px;color:#333;margin-bottom:15px">Search by Image</h3>
+            
+            <form method="POST" enctype="multipart/form-data" class="image-upload-form">
+                {% csrf_token %}
+                <div style="border:2px dashed #3498db;border-radius:10px;padding:30px;text-align:center" 
+                     id="drop-zone">
+                    <input type="file" name="search_image" id="image-input" style="display:none" accept="image/*">
+                    <div id="preview-container" style="display:none;margin-bottom:20px">
+                        <img id="image-preview" style="max-width:300px;max-height:300px;border-radius:10px">
+                    </div>
+                    <div id="upload-prompt">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:48px;color:#3498db;margin-bottom:15px"></i>
+                        <p>Drag and drop an image or <span style="color:#3498db;cursor:pointer" onclick="document.getElementById('image-input').click()">browse</span></p>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3" style="width:100%;padding:12px">
+                    <i class="fas fa-search"></i> Find Similar Products
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        {% if show_results %}
+        <div style="margin-top:30px">
+            <h4 style="font-size:22px;color:#333;margin-bottom:25px">Similar Products</h4>
+            <div style="display:flex;flex-wrap:wrap;margin:-15px">
+                {% for product in products %}
+                <div style="padding:15px;width:100%;max-width:300px;flex:0 0 calc(25% - 30px);margin:15px">
+                    <div style="position:relative;background:#fff;border-radius:15px;overflow:hidden;height:400px;display:flex;flex-direction:column;box-shadow:0 4px 15px rgba(0,0,0,0.1);transition:transform 0.3s ease,box-shadow 0.3s ease" 
+                         onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'" 
+                         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                        
+                        <img src="{{ product.image.url }}" 
+                             style="width:100%;height:200px;object-fit:contain;padding:15px;background:#fff" 
+                             alt="{{ product.name }}">
+                        
+                        <div style="padding:15px;flex:1;display:flex;flex-direction:column;justify-content:space-between">
+                            <h5 style="font-size:16px;font-weight:600;margin-bottom:10px;color:#333;height:40px;overflow:hidden">
+                                {{ product.name }}
+                            </h5>
+                            <p style="font-size:20px;color:#2ecc71;font-weight:700;margin:10px 0">₹{{ product.price }}</p>
+                            <div style="display:flex;gap:10px;margin-top:auto">
+                                <a href="{% url 'product_detail' product.id %}" 
+                                   class="btn btn-primary" 
+                                   style="flex:1">View Details</a>
+                                <form action="{% url 'add_to_cart' product.id %}" 
+                                      method="POST" 
+                                      style="flex:1">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="btn btn-success" 
+                                            style="width:100%">Add to Cart</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="width:100%;text-align:center;padding:40px">
+                    <p style="color:#666">No similar products found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('drop-zone');
+const imageInput = document.getElementById('image-input');
+const previewContainer = document.getElementById('preview-container');
+const imagePreview = document.getElementById('image-preview');
+const uploadPrompt = document.getElementById('upload-prompt');
+
+// Handle drag and drop
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#2ecc71';
+});
+
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#3498db';
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#3498db';
+    
+    if (e.dataTransfer.files.length) {
+        imageInput.files = e.dataTransfer.files;
+        showPreview(e.dataTransfer.files[0]);
+    }
+});
+
+// Handle file input change
+imageInput.addEventListener('change', (e) => {
+    if (e.target.files.length) {
+        showPreview(e.target.files[0]);
+    }
+});
+
+// Show image preview
+function showPreview(file) {
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            previewContainer.style.display = 'block';
+            uploadPrompt.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        alert('Please upload an image file.');
+    }
+}
+</script>
+{% endblock %} 

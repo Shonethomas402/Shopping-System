@@ -249,6 +249,83 @@
                 overflow-x: auto;
             }
         }
+
+        .btn-action {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 3px;
+        }
+
+        .btn-delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-delete:hover {
+            background: #dc3545;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
+        }
+
+        .messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+        }
+
+        .alert {
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #ff4d4d 0%, #f23a2f 100%);
+            color: white;
+            border: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .device-icon {
+            width: 32px;
+            height: 32px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -268,11 +345,14 @@
 
         <!-- Display Messages -->
         {% if messages %}
-            <ul class="messages">
+            <div class="messages">
                 {% for message in messages %}
-                    <li class="{{ message.tags }}">{{ message }}</li>
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         {% endif %}
 
         <!-- Repair Requests Table -->
@@ -284,9 +364,7 @@
                         <tr>
                             <th>Device Type</th>
                             <th>Issue Description</th>
-                            {% comment %} <th>Customer</th>  {% endcomment %}
                             <th>Status</th>
-                            <th>Technician</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
@@ -309,886 +387,38 @@
                                 </div>
                             </td>
                             <td>{{ request.issue_description }}</td>
-                            {% comment %} <td>{{ request.user.get_full_name }}</td> {% endcomment %}
                             <td>
                                 <span class="status-badge status-{{ request.status|lower }}">
                                     {{ request.status }}
-                            </span>
-                        </td>
-                        <td>{{ request.technician.name|default:"Not Assigned" }}</td>
-                        <td>{{ request.created_at|date:"M d, Y" }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                {% comment %} <button class="btn-action btn-view" onclick="window.location.href='{% url 'view_repair_request' request.id %}'">
-                                    <i class="fas fa-eye"></i> {% endcomment %}
-                                {% comment %} </button> {% endcomment %}
-                                <a href="{% url 'edit_repair_request' request.id %}" class="btn-action btn-edit" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'delete_repair_request' request.id %}" class="btn-action btn-delete" title="Delete" 
-                                   onclick="return confirm('Are you sure you want to delete this request?');">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center">No repair requests found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </span>
+                            </td>
+                            <td>{{ request.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <form action="" method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="request_id" value="{{ request.id }}">
+                                        <input type="hidden" name="delete_request" value="true">
+                                        <button type="submit" class="btn-action btn-delete" 
+                                                onclick="return confirm('Are you sure you want to delete this repair request?');"
+                                                title="Delete Request">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No repair requests found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 </body>
 </html>
-
-{% comment %} <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Repair Requests</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-</head>
-<body>
-    <!-- Admin Dashboard Layout -->
-    <div class="admin-layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-bolt"></i>
-                <span>Electro Admin</span>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{% url 'admin_dashboard' %}" class="nav-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{% url 'repair_request_list' %}" class="nav-item active">
-                    <i class="fas fa-tools"></i>
-                    <span>Repair Requests</span>
-                </a>
-                <a href="{% url 'order_management' %}" class="nav-item">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Orders</span>
-                </a>
-                <a href="{% url 'product_management' %}" class="nav-item">
-                    <i class="fas fa-box"></i>
-                    <span>Products</span>
-                </a>
-                <a href="{% url 'technician_management' %}" class="nav-item">
-                    <i class="fas fa-user-cog"></i>
-                    <span>Technicians</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Top Header -->
-            <header class="top-header">
-                <div class="header-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search repairs...">
-                </div>
-                <div class="header-right">
-                    <div class="notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge">3</span>
-                    </div>
-                    <div class="admin-profile">
-                        <img src="https://via.placeholder.com/40" alt="Admin">
-                        <span>Admin</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Page Content -->
-            <div class="page-content">
-                <div class="content-header">
-                    <h1><i class="fas fa-tools"></i> Repair Requests Management</h1>
-                    <div class="header-actions">
-                        <button class="btn-export">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                        <button class="btn-filter">
-                            <i class="fas fa-filter"></i> Filter
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="stats-cards">
-                    <div class="stat-card">
-                        <div class="stat-icon pending">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-details">
-                            <h3>Pending</h3>
-                            <p>{{ pending_count|default:"0" }}</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon progress">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <div class="stat-details">
-                            <h3>In Progress</h3>
-                            <p>{{ in_progress_count|default:"0" }}</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon completed">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-details">
-                            <h3>Completed</h3>
-                            <p>{{ completed_count|default:"0" }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Repair Requests Table -->
-                <div class="table-container">
-                    {% if repair_requests %}
-                    <table class="repair-table">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" class="select-all"></th>
-                                <th>Device Type</th>
-                                <th>Issue</th>
-                                <th>Customer</th>
-                                <th>Status</th>
-                                <th>Technician</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for request in repair_requests %}
-                            <tr>
-                                <td><input type="checkbox" class="select-item"></td>
-                                <td>
-                                    <div class="device-info">
-                                        <span class="device-icon">
-                                            {% if 'phone' in request.device_type.lower %}
-                                                <i class="fas fa-mobile-alt"></i>
-                                            {% elif 'laptop' in request.device_type.lower %}
-                                                <i class="fas fa-laptop"></i>
-                                            {% else %}
-                                                <i class="fas fa-desktop"></i>
-                                            {% endif %}
-                                        </span>
-                                        {{ request.device_type }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="issue-info">
-                                        <p class="issue-text">{{ request.issue_description }}</p>
-                                        <span class="priority-badge high">High Priority</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="customer-info">
-                                        <img src="https://via.placeholder.com/32" alt="Customer">
-                                        <div class="customer-details">
-                                            <p class="customer-name">{{ request.user.get_full_name }}</p>
-                                            <span class="customer-email">{{ request.user.email }}</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="status-badge status-{{ request.status|lower }}">
-                                        {{ request.status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="technician-info">
-                                        {% if request.assigned_technician %}
-                                            <img src="https://via.placeholder.com/32" alt="Technician">
-                                            <span>{{ request.assigned_technician.name }}</span>
-                                        {% else %}
-                                            <span class="unassigned">Unassigned</span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="date-info">
-                                        <span class="date">{{ request.created_at|date:"d M Y" }}</span>
-                                        <span class="time">{{ request.created_at|time:"H:i" }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-action btn-view" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn-action btn-edit" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn-action btn-delete" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                    <div class="no-requests">
-                        <i class="fas fa-clipboard-list"></i>
-                        <h3>No Repair Requests Found</h3>
-                        <p>There are currently no repair requests in the system.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-<style>
-/* Reset and Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Poppins', sans-serif;
-    background: #f4f6f9;
-    color: #333;
-}
-
-/* Admin Layout */
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-/* Sidebar Styles */
-.sidebar {
-    width: 260px;
-    background: #2c3e50;
-    color: white;
-    padding: 1.5rem;
-}
-
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding-bottom: 2rem;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    color: #ecf0f1;
-    text-decoration: none;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.nav-item:hover, .nav-item.active {
-    background: #34495e;
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Top Header */
-.top-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.header-search {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #f8f9fa;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-}
-
-.header-search input {
-    border: none;
-    background: none;
-    outline: none;
-    width: 300px;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-}
-
-.notifications {
-    position: relative;
-}
-
-.badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #e74c3c;
-    color: white;
-    border-radius: 50%;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
-
-.admin-profile {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.admin-profile img {
-    border-radius: 50%;
-}
-
-/* Page Content */
-.page-content {
-    padding: 2rem;
-}
-
-.content-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.header-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-/* Stats Cards */
-.stats-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-
-.stat-icon.pending { background: #fff3cd; color: #856404; }
-.stat-icon.progress { background: #cce5ff; color: #004085; }
-.stat-icon.completed { background: #d4edda; color: #155724; }
-
-/* Table Styles */
-.table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
-
-.repair-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.repair-table th,
-.repair-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #eee;
-}
-
-.repair-table th {
-    background: #f8f9fa;
-    font-weight: 500;
-    text-align: left;
-}
-
-/* Custom Elements */
-.btn-export,
-.btn-filter {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-export {
-    background: #4CAF50;
-    color: white;
-}
-
-.btn-filter {
-    background: #f8f9fa;
-    color: #333;
-}
-
-.status-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.status-pending { background: #fff3cd; color: #856404; }
-.status-progress { background: #cce5ff; color: #004085; }
-.status-completed { background: #d4edda; color: #155724; }
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-    .sidebar {
-        width: 80px;
-    }
-    
-    .sidebar-header span,
-    .nav-item span {
-        display: none;
-    }
-    
-    .stats-cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    .stats-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .table-container {
-        overflow-x: auto;
-    }
-}
-</style>
-
-</body>
-</html> {% endcomment %}
-
-{% comment %} {% extends "base.html" %}
-
-{% block content %}
-<div class="repair-dashboard">
-    <div class="dashboard-header">
-        <h2 class="dashboard-title">
-            <i class="fas fa-tools"></i> Repair Requests Management
-        </h2>
-        <p class="dashboard-subtitle">Overview of all repair service requests</p>
-    </div>
-
-    <div class="repair-request-container">
-        {% if repair_requests %}
-        <div class="table-responsive">
-            <table class="repair-request-table">
-                <thead>
-                    <tr>
-                        <th><i class="fas fa-mobile-alt"></i> Device Type</th>
-                        <th><i class="fas fa-exclamation-circle"></i> Issue</th>
-                        <th><i class="fas fa-key"></i> PIN Number</th>
-                        <th><i class="fas fa-info-circle"></i> Status</th>
-                        <th><i class="far fa-calendar-alt"></i> Submitted At</th>
-                        <th><i class="fas fa-cogs"></i> Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for request in repair_requests %}
-                    <tr>
-                        <td>
-                            <div class="device-info">
-                                <span class="device-icon">
-                                    {% if 'phone' in request.device_type.lower %}
-                                        <i class="fas fa-mobile-alt"></i>
-                                    {% elif 'laptop' in request.device_type.lower %}
-                                        <i class="fas fa-laptop"></i>
-                                    {% else %}
-                                        <i class="fas fa-desktop"></i>
-                                    {% endif %}
-                                </span>
-                                {{ request.device_type }}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="issue-description">
-                                {{ request.issue_description }}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="pin-number">{{ request.pin_number }}</span>
-                        </td>
-                        <td>
-                            <span class="status-badge status-{{ request.status|lower }}">
-                                {{ request.status }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="date-info">
-                                <span class="date">{{ request.created_at|date:"d M Y" }}</span>
-                                <span class="time">{{ request.created_at|time:"H:i" }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action btn-view" title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn-action btn-edit" title="Edit Request">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="no-requests">
-            <i class="fas fa-clipboard-list"></i>
-            <h3>No Repair Requests Found</h3>
-            <p>There are currently no repair requests in the system.</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<style>
-    .repair-dashboard {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-        background-color: #f8f9fa;
-        min-height: 100vh;
-    }
-
-    .dashboard-header {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .dashboard-title {
-        color: #2c3e50;
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-
-    .dashboard-subtitle {
-        color: #666;
-        font-size: 1.1rem;
-    }
-
-    .repair-request-container {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        padding: 1.5rem;
-    }
-
-    .table-responsive {
-        overflow-x: auto;
-    }
-
-    .repair-request-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin: 1rem 0;
-    }
-
-    .repair-request-table th {
-        background: #3498db;
-        color: white;
-        padding: 1rem;
-        text-align: left;
-    }
-
-    .repair-request-table th:first-child {
-        border-top-left-radius: 10px;
-    }
-
-    .repair-request-table th:last-child {
-        border-top-right-radius: 10px;
-    }
-
-    .repair-request-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #eee;
-        font-size: 0.95rem;
-    }
-
-    .device-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .device-icon {
-        color: #3498db;
-        font-size: 1.2rem;
-    }
-
-    .issue-description {
-        max-width: 300px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .pin-number {
-        background: #f1f5f9;
-        padding: 0.3rem 0.8rem;
-        border-radius: 15px;
-        font-family: monospace;
-        font-size: 0.9rem;
-    }
-
-    .status-badge {
-        padding: 0.4rem 1rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-transform: capitalize;
-    }
-
-    .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-
-    .status-completed {
-        background-color: #d4edda;
-        color: #155724;
-    }
-
-    .status-cancelled {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-
-    .date-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-    }
-
-    .date {
-        font-weight: 500;
-    }
-
-    .time {
-        color: #666;
-        font-size: 0.85rem;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-action {
-        padding: 0.5rem;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-view {
-        background-color: #e3f2fd;
-        color: #1976d2;
-    }
-
-    .btn-edit {
-        background-color: #fff3e0;
-        color: #f57c00;
-    }
-
-    .btn-action:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .no-requests {
-        text-align: center;
-        padding: 3rem;
-        color: #666;
-    }
-
-    .no-requests i {
-        font-size: 4rem;
-        color: #ccc;
-        margin-bottom: 1rem;
-    }
-
-    .no-requests h3 {
-        margin-bottom: 0.5rem;
-        color: #333;
-    }
-
-    @media (max-width: 768px) {
-        .repair-dashboard {
-            padding: 1rem;
-        }
-
-        .dashboard-title {
-            font-size: 2rem;
-        }
-
-        .issue-description {
-            max-width: 200px;
-        }
-    }
-</style>
-{% endblock %} {% endcomment %}
-
-
-
-
-
-{% comment %} {% block content %}
-<div class="admin-dashboard">
-    <h2 class="dashboard-title">Repair Requests</h2>
-    <div class="repair-request-list">
-        <table class="repair-request-table">
-            <thead>
-                <tr>
-                    <th>Device Type</th>
-                    <th>Issue Description</th>
-                    <th>PIN Number</th>
-                    <th>Status</th>
-                    <th>Submitted At</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for request in repair_requests %} 
-                    <tr>
-                        <td>{{ request.device_type }}</td>
-                        <td>{{ request.issue_description }}</td>
-                        <td>{{ request.pin_number }}</td>
-                        <td>
-                            <span class="status-badge {% if request.status == 'Completed' %}active{% else %}blocked{% endif %}">
-                                {{ request.status }}
-                            </span>
-                        </td>
-                        <td>{{ request.created_at }}</td>
-                    </tr>
-                {% empty %} 
-                    <tr>
-                        <td colspan="5">No repair requests found.</td>
-                     {% endfor %}   
-        
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
-
-<!-- Add this in the head section of your base template or include here -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
-<style>
-    .admin-dashboard {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .dashboard-title {
-        color: #2c3e50;
-        margin-bottom: 2rem;
-        font-size: 2rem;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 1rem;
-    }
-
-    .repair-request-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .repair-request-table th {
-        background: #34495e;
-        color: white;
-        padding: 15px;
-        text-align: left;
-    }
-
-    .repair-request-table td {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .repair-request-table tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.9em;
-        font-weight: 500;
-    }
-
-    .status-badge.active {
-        background-color: #e1f7e1;
-        color: #2ecc71;
-    }
-
-    .status-badge.blocked {
-        background-color: #ffe1e1;
-        color: #e74c3c;
-    }
-
-</style> {% endcomment %}
 

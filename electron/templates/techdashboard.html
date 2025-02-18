@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Dashboard</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .dashboard-container {
+            padding: 20px;
+        }
+        .repair-request-card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-action {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Technician Dashboard</a>
+            <div class="ml-auto">
+                <span class="text-white mr-3">Welcome, {{ technician.name }}</span>
+                <a href="{% url 'tech_login' %}" class="btn btn-light">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Pending Requests Section -->
+        <h2 class="mb-4">Pending Repair Requests</h2>
+        {% if pending_requests %}
+            {% for request in pending_requests %}
+                <div class="card repair-request-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ request.device_type }}</h5>
+                        <p class="card-text">
+                            <strong>PIN:</strong> {{ request.pin_number }}<br>
+                            <strong>Status:</strong> {{ request.status }}<br>
+                            <strong>Description:</strong> {{ request.issue_description }}
+                        </p>
+                        <p class="card-text"><small class="text-muted">Created: {{ request.created_at }}</small></p>
+                        
+                        <!-- Action Buttons for Pending Requests -->
+                        <div class="mt-3">
+                            <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="request_id" value="{{ request.id }}">
+                                <input type="hidden" name="action" value="accept">
+                                <button type="submit" class="btn btn-success btn-action" 
+                                        onclick="return confirm('Are you sure you want to accept this repair request?');">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                            </form>
+                            
+                            <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="request_id" value="{{ request.id }}">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-danger btn-action" 
+                                        onclick="return confirm('Are you sure you want to reject this repair request?');">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                No pending repair requests at the moment.
+            </div>
+        {% endif %}
+
+        <!-- Active Requests Section -->
+        {% if active_requests %}
+            <h2 class="mb-4 mt-5">Active Repair Requests</h2>
+            {% for request in active_requests %}
+                <div class="card repair-request-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ request.device_type }}</h5>
+                        <p class="card-text">
+                            <strong>PIN:</strong> {{ request.pin_number }}<br>
+                            <strong>Status:</strong> {{ request.status }}<br>
+                            <strong>Description:</strong> {{ request.issue_description }}
+                        </p>
+                        <p class="card-text"><small class="text-muted">Created: {{ request.created_at }}</small></p>
+                        
+                        <!-- Action Buttons for Active Requests -->
+                        <div class="mt-3">
+                            {% if request.status == 'approved' %}
+                                <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ request.id }}">
+                                    <input type="hidden" name="action" value="complete">
+                                    <button type="submit" class="btn btn-primary btn-action"
+                                            onclick="return confirm('Are you sure you want to mark this repair as completed?');">
+                                        <i class="fas fa-flag-checkered"></i> Complete
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle form submissions with confirmation
+        const actionForms = document.querySelectorAll('form[action="{% url 'tech_dashboard' %}"]');
+        
+        actionForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const action = this.querySelector('input[name="action"]').value;
+                let message = '';
+                
+                switch(action) {
+                    case 'accept':
+                        message = 'Are you sure you want to accept this repair request?';
+                        break;
+                    case 'reject':
+                        message = 'Are you sure you want to reject this repair request?';
+                        break;
+                    case 'complete':
+                        message = 'Are you sure you want to mark this repair as completed?';
+                        break;
+                }
+                
+                if (!confirm(message)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

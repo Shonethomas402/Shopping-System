@@ -410,12 +410,18 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto align-items-center">
                     <li class="nav-item">
-                        <form class="form-inline search-form">
-                            <input class="form-control" type="search" placeholder="Search products...">
+                        <form class="form-inline search-form" action="{% url 'search' %}" method="GET">
+                            <input class="form-control" type="search" name="q" placeholder="Search products..." value="{{ request.GET.q }}">
                             <button class="btn" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
                         </form>
+                    </li>
+                    <!-- Add Image Search Button -->
+                    <li class="nav-item ml-2">
+                        <a href="{% url 'image_search' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-camera"></i> Search by Image
+                        </a>
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
