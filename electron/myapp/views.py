@@ -134,8 +134,25 @@ def save_for_later(request, product_id):
 #     if request.method == "POST":
 #         item.delete()
 #     return redirect('view_saved_items')
+@login_required
 def profile(request):
-    return render(request, 'profile.html')  # You'll need a profile template
+    # Get recent orders with delivery status
+    recent_orders = Order.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:5]  # Get last 5 orders
+
+    # Get counts for dashboard
+    orders_count = Order.objects.filter(user=request.user).count()
+    wishlist_count = Wishlist.objects.filter(user=request.user).count()
+
+    context = {
+        'user': request.user,
+        'recent_orders': recent_orders,
+        'orders_count': orders_count,
+        'wishlist_count': wishlist_count,
+    }
+    
+    return render(request, 'profile.html', context)
 
 def search(request):
     query = request.GET.get('q', '')
@@ -1796,16 +1813,100 @@ def deliveryboy_dashboard(request):
         messages.error(request, 'Please login first!')
         return redirect('tech_login')
     
+    deliveryboy_id = request.session.get('deliveryboy_id')
     deliveryboy_name = request.session.get('deliveryboy_name')
-    # Add any delivery-related queries here
-    # Example: pending_deliveries = Delivery.objects.filter(status='pending')
     
+    # Get today's date
+    today = timezone.now().date()
+    
+    # Get pending deliveries (in_transit)
+    pending_deliveries = Order.objects.filter(
+        delivery_boy_id=deliveryboy_id,
+        delivery_status='in_transit',
+        created_at__date=today
+    ).order_by('created_at')
+
+    # Get accepted deliveries
+    accepted_deliveries = Order.objects.filter(
+        delivery_boy_id=deliveryboy_id,
+        delivery_status='accepted',
+        created_at__date=today
+    ).order_by('created_at')
+
+    # Get completed deliveries
+    completed_deliveries = Order.objects.filter(
+        delivery_boy_id=deliveryboy_id,
+        delivery_status='delivered',
+        created_at__date=today
+    ).order_by('created_at')
+
+    # Check if this delivery boy has less than 3 orders for today
+    total_orders = pending_deliveries.count() + accepted_deliveries.count() + completed_deliveries.count()
+    
+    if total_orders < 3:
+        # Calculate how many more orders can be assigned
+        available_slots = 3 - total_orders
+        
+        # Get unassigned orders
+        new_orders = Order.objects.filter(
+            status='Completed',
+            delivery_status__isnull=True,
+            created_at__date=today
+        ).order_by('created_at')[:available_slots]
+        
+        # Assign these orders to the delivery boy
+        for order in new_orders:
+            order.delivery_boy_id = deliveryboy_id
+            order.delivery_status = 'in_transit'
+            order.save()
+        
+        # Refresh pending deliveries
+        pending_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='in_transit',
+            created_at__date=today
+        ).order_by('created_at')
+
     context = {
         'deliveryboy_name': deliveryboy_name,
-        # Add other context data as needed
-        # 'pending_deliveries': pending_deliveries,
+        'pending_deliveries': pending_deliveries,
+        'accepted_deliveries': accepted_deliveries,
+        'completed_deliveries': completed_deliveries,
+        'orders_count': total_orders,
+        'max_orders': 3,
     }
     return render(request, 'deliveryboy_dashboard.html', context)
+
+@login_required
+def accept_delivery(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        # Generate OTP when delivery is accepted
+        if not order.delivery_otp:
+            import random
+            order.delivery_otp = str(random.randint(100000, 999999))
+        order.delivery_status = 'accepted'
+        order.save()
+        messages.success(request, 'Delivery accepted successfully!')
+        return redirect('deliveryboy_dashboard')
+
+@login_required
+def verify_delivery_otp(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        entered_otp = request.POST.get('otp')
+        
+        if entered_otp == order.delivery_otp:
+            from django.utils import timezone
+            order.otp_verified = True
+            order.delivery_time = timezone.now()  # Record delivery time
+            order.delivery_status = 'delivered'
+            order.save()
+            messages.success(request, 'Delivery completed successfully!')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+            
+    return redirect('deliveryboy_dashboard')
 
 def logout_user(request):
     request.session.flush()
@@ -2148,11 +2249,11 @@ from .models import Product
 from PIL import Image
 import numpy as np
 from scipy.spatial.distance import cosine
-import io
+import os
 
 def image_search(request):
     """
-    View function for handling image-based product search using PIL
+    View function for handling image-based product search
     """
     if request.method == 'POST' and request.FILES.get('search_image'):
         try:
@@ -2160,42 +2261,73 @@ def image_search(request):
             image_file = request.FILES['search_image']
             fs = FileSystemStorage()
             
+            # Create temp directory if it doesn't exist
+            temp_dir = os.path.join('media', 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
             # Save uploaded image temporarily
-            filename = fs.save(f"temp/{image_file.name}", image_file)
+            filename = fs.save(os.path.join('temp', image_file.name), image_file)
             uploaded_file_path = fs.path(filename)
             
             # Load and process search image
             search_img = Image.open(uploaded_file_path)
             search_img = search_img.convert('RGB')
             search_img = search_img.resize((224, 224))
-            search_array = np.array(search_img).flatten()
+            search_array = np.array(search_img).flatten() / 255.0
 
             # Get all products
             products = Product.objects.all()
             similar_products = []
+            
+            # Set similarity thresholds
+            SIMILARITY_THRESHOLD = 0.80  # Lowered threshold for better matching
+            
+            # Track maximum similarity for this search
+            max_similarity = 0
 
             # Compare with each product
             for product in products:
-                if product.image:
+                if product.image and os.path.exists(product.image.path):
                     try:
                         # Process product image
                         product_img = Image.open(product.image.path)
                         product_img = product_img.convert('RGB')
                         product_img = product_img.resize((224, 224))
-                        product_array = np.array(product_img).flatten()
+                        product_array = np.array(product_img).flatten() / 255.0
 
                         # Calculate similarity
                         similarity = 1 - cosine(search_array, product_array)
-                        similar_products.append((product, similarity))
+                        max_similarity = max(max_similarity, similarity)
+                        
+                        # Add products that meet the similarity threshold
+                        if similarity >= SIMILARITY_THRESHOLD:
+                            similar_products.append((product, similarity))
+                            print(f"Found similar product: {product.name} with similarity: {similarity}")  # Debug print
                     except Exception as e:
+                        print(f"Error processing product {product.id}: {str(e)}")  # Debug print
                         continue
 
             # Clean up temporary file
             fs.delete(filename)
 
+            # Debug prints
+            print(f"Max similarity found: {max_similarity}")
+            print(f"Number of similar products found: {len(similar_products)}")
+
             # Sort products by similarity and get top 6
             similar_products.sort(key=lambda x: x[1], reverse=True)
             recommended_products = [p[0] for p in similar_products[:6]]
+
+            if not recommended_products:
+                messages.info(request, 'No similar products found. Please try uploading a different image.')
+                return render(request, 'image_search.html', {
+                    'show_results': True,
+                    'products': [],
+                    'title': 'Search Results'
+                })
+
+            # Debug print
+            print(f"Returning {len(recommended_products)} recommended products")
 
             return render(request, 'image_search.html', {
                 'products': recommended_products,
@@ -2204,7 +2336,8 @@ def image_search(request):
             })
 
         except Exception as e:
-            messages.error(request, f'An error occurred: {str(e)}')
+            print(f"Error in image search: {str(e)}")  # Debug print
+            messages.error(request, f'An error occurred while processing your image: {str(e)}')
             return render(request, 'image_search.html', {
                 'title': 'Search by Image',
                 'error': str(e)
@@ -2214,3 +2347,24 @@ def image_search(request):
     return render(request, 'image_search.html', {
         'title': 'Search by Image'
     })
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order_items = OrderItem.objects.filter(order=order)
+    
+    print(f"Order status: {order.delivery_status}")  # Debug print
+    print(f"Current OTP: {order.delivery_otp}")      # Debug print
+    
+    if order.delivery_status == 'accepted' and not order.delivery_otp:
+        import random
+        order.delivery_otp = str(random.randint(100000, 999999))
+        order.save()
+        print(f"Generated new OTP: {order.delivery_otp}")  # Debug print
+    
+    context = {
+        'order': order,
+        'order_items': order_items,
+    }
+    
+    return render(request, 'order_detail.html', context)

@@ -66,11 +66,11 @@
                     </div>
                 </div>
 
-                <!-- Recent Orders -->
+                <!-- Order Tracking Section -->
                 <div class="col-12 mb-4">
                     <div class="card shadow-lg">
                         <div class="card-body">
-                            <h5 class="card-title mb-4">Recent Orders</h5>
+                            <h5 class="card-title mb-4">Order Tracking</h5>
                             {% if recent_orders %}
                                 <div class="table-responsive">
                                     <table class="table table-hover">
@@ -78,28 +78,28 @@
                                             <tr>
                                                 <th>Order ID</th>
                                                 <th>Date</th>
-                                                <th>Status</th>
+                                                {% comment %} <th>Status</th> {% endcomment %}
                                                 <th>Total</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for order in recent_orders %}
-                                            <tr>
-                                                <td>#{{ order.id }}</td>
-                                                <td>{{ order.created_at|date:"M d, Y" }}</td>
-                                                <td>
-                                                    <span class="badge badge-{{ order.status_color }}">
-                                                        {{ order.status }}
-                                                    </span>
-                                                </td>
-                                                <td>₹{{ order.total_amount }}</td>
-                                                <td>
-                                                    <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
-                                                        View
-                                                    </a>
-                                                </td>
-                                            </tr>
+                                                <tr>
+                                                    <td>#{{ order.id }}</td>
+                                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                                    {% comment %} <td>
+                                                        <span class="badge badge-{{ order.status_color }}">
+                                                            {{ order.status }}
+                                                        </span>
+                                                    </td> {% endcomment %}
+                                                    <td>₹{{ order.total_price }}</td>
+                                                    <td>
+                                                        <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                            View
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>

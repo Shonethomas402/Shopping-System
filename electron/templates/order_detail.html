@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Order #{{ order.id }}</h3>
+        </div>
+        <div class="card-body">
+            <!-- Order Info -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Order Information</h5>
+                    <div class="info-box">
+                        <p><strong>Date:</strong> {{ order.created_at|date:"M d, Y" }}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge badge-{{ order.status_color }}">
+                                {{ order.status }}
+                            </span>
+                        </p>
+                        <p><strong>Total Amount:</strong> ₹{{ order.total_price }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Delivery Address</h5>
+                    <div class="address-box">
+                        <p><strong>Name:</strong> {{ order.address.name }}</p>
+                        <p><strong>House No:</strong> {{ order.address.house_no }}</p>
+                        <p><strong>Address:</strong> {{ order.address.address }}</p>
+                        <p><strong>Place:</strong> {{ order.address.place }}</p>
+                        <p><strong>PIN:</strong> {{ order.address.pin }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <h5>Order Items</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order_items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" 
+                                             class="product-image">
+                                    {% endif %}
+                                    <span class="ml-2">{{ item.product.name }}</span>
+                                </div>
+                            </td>
+                            <td>₹{{ item.product.price }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ item.product_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                            <td><strong>₹{{ order.total_price }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Delivery Status -->
+            <div class="mt-4">
+                <h5>Delivery Status</h5>
+                <div class="progress-track">
+                    <ul id="progressbar">
+                        <li class="step0 {% if order.status != 'Pending' %}active{% endif %}" id="step1">Order Placed</li>
+                        <li class="step0 {% if order.delivery_status == 'accepted' or order.delivery_status == 'delivered' %}active{% endif %}" id="step2">Accepted</li>
+                        <li class="step0 {% if order.delivery_status == 'in_transit' %}active{% endif %}" id="step3">In Transit</li>
+                        <li class="step0 {% if order.delivery_status == 'delivered' %}active{% endif %}" id="step4">Delivered</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Delivery Verification -->
+            <div class="mt-4">
+                <h5>Delivery Verification</h5>
+                <div class="verification-box">
+                    {% if order.delivery_status == 'accepted' %}
+                        {% if order.delivery_otp %}
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="fas fa-key"></i> 
+                                        <strong>Your Delivery OTP:</strong> 
+                                        <span class="otp-display">{{ order.delivery_otp }}</span>
+                                    </div>
+                                    <div class="otp-status">
+                                        {% if order.otp_verified %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check"></i> Verified
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-warning">
+                                                <i class="fas fa-clock"></i> Pending Verification
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        Share this OTP with delivery person only at the time of delivery
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elif order.delivery_status == 'delivered' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> 
+                            Delivery completed and verified successfully!
+                            {% if order.delivery_time %}
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i>
+                                    Delivered on {{ order.delivery_time|date:"M d, Y" }} at {{ order.delivery_time|date:"g:i A" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            OTP will be generated once the delivery is accepted.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .info-box, .address-box {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+    }
+    .product-image {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    .progress-track {
+        margin: 40px 0;
+    }
+    #progressbar {
+        margin-bottom: 30px;
+        overflow: hidden;
+        color: #455A64;
+        padding-left: 0px;
+        margin-top: 30px
+    }
+    #progressbar li {
+        list-style-type: none;
+        font-size: 13px;
+        width: 25%;
+        float: left;
+        position: relative;
+        font-weight: 400;
+        text-align: center;
+    }
+    #progressbar li:before {
+        width: 40px;
+        height: 40px;
+        line-height: 45px;
+        display: block;
+        font-size: 20px;
+        background: #C5CAE9;
+        border-radius: 50%;
+        margin: auto;
+        padding: 0px;
+        content: '';
+    }
+    #progressbar li:after {
+        content: '';
+        width: 100%;
+        height: 12px;
+        background: #C5CAE9;
+        position: absolute;
+        left: 0;
+        top: 16px;
+        z-index: -1;
+    }
+    #progressbar li:last-child:after {
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+        position: absolute;
+        left: -50%
+    }
+    #progressbar li:first-child:after {
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+        position: absolute;
+        left: 50%
+    }
+    #progressbar li.active:before,
+    #progressbar li.active:after {
+        background: #651FFF;
+        color: white;
+    }
+    .badge {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %} 

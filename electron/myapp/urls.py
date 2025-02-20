@@ -171,6 +171,11 @@ urlpatterns = [
     path('delete-deliveryboy/<int:id>/', views.delete_deliveryboy, name='delete_deliveryboy'),
     path('deliveryboy-dashboard/', views.deliveryboy_dashboard, name='deliveryboy_dashboard'),
     path('image-search/', views.image_search, name='image_search'),
+    path('accept-delivery/<int:order_id>/', views.accept_delivery, name='accept_delivery'),
+    path('verify-delivery-otp/<int:order_id>/', views.verify_delivery_otp, name='verify_delivery_otp'),
+    path('order/<int:order_id>/', views.order_detail, name='order_detail'),
+    # path('deliveryboy/login/', views.deliveryboy_login, name='deliveryboy_login'),
+    # path('deliveryboy/logout/', views.deliveryboy_logout, name='logout'),
 ]
     
 

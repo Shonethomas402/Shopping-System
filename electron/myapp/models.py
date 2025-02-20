@@ -20,6 +20,26 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     payment_id = models.CharField(max_length=91, blank=True, null=True)
     address = models.ForeignKey('DeliveryAddress', on_delete=models.SET_NULL, null=True)
+    delivery_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('in_transit', 'In Transit'),
+            ('accepted', 'Accepted'),
+            ('delivered', 'Delivered')
+        ],
+        null=True,
+        blank=True
+    )
+    delivery_boy = models.ForeignKey(
+        'DeliveryBoy',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    delivery_otp = models.CharField(max_length=6, null=True, blank=True)
+    otp_verified = models.BooleanField(default=False)
+    delivery_time = models.DateTimeField(null=True, blank=True)
 
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
