@@ -443,8 +443,8 @@ def add_to_cart(request, product_id):
     
     # Check stock before adding
     if cart_item.quantity < product.stock:
-        cart_item.quantity += 1
-        cart_item.save()
+        # cart_item.quantity += 1
+        # cart_item.save()
         messages.success(request, f"{product.name} added to cart successfully!")
     else:
         messages.warning(request, f"Sorry, {product.name} is out of stock!")
@@ -2252,97 +2252,41 @@ from scipy.spatial.distance import cosine
 import os
 
 def image_search(request):
-    """
-    View function for handling image-based product search
-    """
-    if request.method == 'POST' and request.FILES.get('search_image'):
-        try:
-            # Get uploaded image
-            image_file = request.FILES['search_image']
-            fs = FileSystemStorage()
-            
-            # Create temp directory if it doesn't exist
-            temp_dir = os.path.join('media', 'temp')
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            # Save uploaded image temporarily
-            filename = fs.save(os.path.join('temp', image_file.name), image_file)
-            uploaded_file_path = fs.path(filename)
-            
-            # Load and process search image
-            search_img = Image.open(uploaded_file_path)
-            search_img = search_img.convert('RGB')
-            search_img = search_img.resize((224, 224))
-            search_array = np.array(search_img).flatten() / 255.0
-
-            # Get all products
-            products = Product.objects.all()
-            similar_products = []
-            
-            # Set similarity thresholds
-            SIMILARITY_THRESHOLD = 0.80  # Lowered threshold for better matching
-            
-            # Track maximum similarity for this search
-            max_similarity = 0
-
-            # Compare with each product
-            for product in products:
-                if product.image and os.path.exists(product.image.path):
-                    try:
-                        # Process product image
-                        product_img = Image.open(product.image.path)
-                        product_img = product_img.convert('RGB')
-                        product_img = product_img.resize((224, 224))
-                        product_array = np.array(product_img).flatten() / 255.0
-
-                        # Calculate similarity
-                        similarity = 1 - cosine(search_array, product_array)
-                        max_similarity = max(max_similarity, similarity)
-                        
-                        # Add products that meet the similarity threshold
-                        if similarity >= SIMILARITY_THRESHOLD:
-                            similar_products.append((product, similarity))
-                            print(f"Found similar product: {product.name} with similarity: {similarity}")  # Debug print
-                    except Exception as e:
-                        print(f"Error processing product {product.id}: {str(e)}")  # Debug print
-                        continue
-
-            # Clean up temporary file
-            fs.delete(filename)
-
-            # Debug prints
-            print(f"Max similarity found: {max_similarity}")
-            print(f"Number of similar products found: {len(similar_products)}")
-
-            # Sort products by similarity and get top 6
-            similar_products.sort(key=lambda x: x[1], reverse=True)
-            recommended_products = [p[0] for p in similar_products[:6]]
-
-            if not recommended_products:
-                messages.info(request, 'No similar products found. Please try uploading a different image.')
+    print("Image search view called")  # Debug print
+    
+    if request.method == 'POST':
+        print("POST request received")  # Debug print
+        
+        if 'search_image' in request.FILES:
+            try:
+                print("Image file found in request")  # Debug print
+                uploaded_image = request.FILES['search_image']
+                print(f"Uploaded image: {uploaded_image.name}, size: {uploaded_image.size}")  # Debug print
+                
+                # Your image processing code here
+                # ...
+                
+                # For testing, let's just return all products
+                products = Product.objects.all()[:6]  # Get first 6 products
+                print(f"Returning {len(products)} products")  # Debug print
+                
                 return render(request, 'image_search.html', {
                     'show_results': True,
-                    'products': [],
+                    'products': products,
                     'title': 'Search Results'
                 })
-
-            # Debug print
-            print(f"Returning {len(recommended_products)} recommended products")
-
-            return render(request, 'image_search.html', {
-                'products': recommended_products,
-                'show_results': True,
-                'title': 'Search Results'
-            })
-
-        except Exception as e:
-            print(f"Error in image search: {str(e)}")  # Debug print
-            messages.error(request, f'An error occurred while processing your image: {str(e)}')
-            return render(request, 'image_search.html', {
-                'title': 'Search by Image',
-                'error': str(e)
-            })
-
+                
+            except Exception as e:
+                print(f"Error in image search: {str(e)}")  # Debug print
+                messages.error(request, f'An error occurred: {str(e)}')
+                return render(request, 'image_search.html', {
+                    'title': 'Search by Image',
+                    'error': str(e)
+                })
+        else:
+            print("No image file in request")  # Debug print
+            messages.error(request, 'No image file was uploaded.')
+            
     # GET request - show search form
     return render(request, 'image_search.html', {
         'title': 'Search by Image'
@@ -2368,3 +2312,332 @@ def order_detail(request, order_id):
     }
     
     return render(request, 'order_detail.html', context)
+
+from django.shortcuts import render
+from .models import Product
+from .recommendation_model import ProductRecommender
+
+# Create a global recommender instance
+recommender = ProductRecommender()
+
+def initialize_recommender():
+    try:
+        # Get all products with necessary fields
+        products = Product.objects.all().values(
+            'id', 'name', 'description'
+        )
+        # Initialize the recommender
+        recommender.prepare_data(products)
+    except Exception as e:
+        print(f"Error initializing recommender: {e}")
+
+def product_detail(request, id):  # Changed from product_id to id
+    try:
+        product = Product.objects.get(id=id)
+        
+        # Get more recommendations initially (e.g., 10 instead of 4)
+        recommended_ids = recommender.get_recommendations(id, num_recommendations=10)
+        
+        # Filter by category
+        recommended_products = Product.objects.filter(
+            id__in=recommended_ids,
+            category=product.category
+        )[:4]  # Limit to 4 results
+        
+        context = {
+            'product': product,
+            'recommended_products': recommended_products,
+        }
+        return render(request, 'product_detail.html', context)
+    except Product.DoesNotExist:
+        return render(request, '404.html')
+    except Exception as e:
+        print(f"Error in product detail view: {e}")
+        return render(request, 'error.html')
+
+from django.shortcuts import render
+from .utils.image_processor import ImageProcessor
+from .models import Product, ProductImage
+import numpy as np
+
+# Initialize the image processor
+image_processor = ImageProcessor()
+
+def image_search(request):
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        try:
+            uploaded_file = request.FILES['search_image']
+            
+            # First check if the image is of an electronic device
+            is_electronic, confidence, predicted_class = image_processor.is_electronic_device(uploaded_file)
+            
+            if not is_electronic:
+                messages.warning(
+                    request,
+                    f'The uploaded image appears to be of a {predicted_class}, not an electronic device. '
+                    'Please upload an image of an electronic product.'
+                )
+                return render(request, 'image_search.html', {
+                    'show_results': False,
+                    'title': 'Search by Image'
+                })
+            
+            # Reset file pointer after reading
+            uploaded_file.seek(0)
+            
+            # Extract features from uploaded image
+            query_features = image_processor.extract_features(uploaded_file)
+            
+            # Get all products and their features
+            products = Product.objects.all()
+            product_features = []
+            valid_products = []
+            
+            for product in products:
+                try:
+                    features = image_processor.extract_features(product.image.path)
+                    product_features.append(features)
+                    valid_products.append(product)
+                except Exception as e:
+                    logger.error(f"Error processing product {product.id}: {str(e)}")
+                    continue
+            
+            # Find similar products
+            similar_indices = image_processor.find_similar_products(
+                query_features, 
+                product_features
+            )
+            
+            # Get the actual products
+            similar_products = [
+                valid_products[idx] for idx, _ in similar_indices
+            ]
+            
+            if not similar_products:
+                messages.warning(
+                    request, 
+                    'No similar electronic products found in our catalog. Please try with a different image.'
+                )
+                return render(request, 'image_search.html', {'show_results': False})
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'uploaded_image': uploaded_file,
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try again with a different image.')
+            return render(request, 'image_search.html', {'show_results': False})
+    
+    return render(request, 'image_search.html', {'show_results': False})
+
+import logging
+import io
+from PIL import Image
+import torch
+from torchvision import transforms, models
+import numpy as np
+from django.contrib import messages
+from django.shortcuts import render
+from .models import Product
+from scipy.spatial.distance import cosine
+
+logger = logging.getLogger(__name__)
+
+def get_image_features(image):
+    """Extract features from image using ResNet50"""
+    try:
+        # Load pretrained ResNet model
+        model = models.resnet50(pretrained=True)
+        model.eval()
+        
+        # Remove the last fully connected layer
+        feature_extractor = torch.nn.Sequential(*(list(model.children())[:-1]))
+        
+        # Define image transformations
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            )
+        ])
+        
+        # Transform and get features
+        img_tensor = transform(image)
+        img_tensor = img_tensor.unsqueeze(0)  # Add batch dimension
+        
+        with torch.no_grad():
+            features = feature_extractor(img_tensor)
+        
+        return features.numpy().flatten()
+    except Exception as e:
+        logger.error(f"Error extracting features: {str(e)}")
+        raise
+
+def find_similar_products(query_features, threshold=0.8):
+    """Find similar products based on image features"""
+    similar_products = []
+    
+    try:
+        # Get all products
+        products = Product.objects.all()
+        
+        for product in products:
+            try:
+                # Open product image
+                product_image = Image.open(product.image.path)
+                if product_image.mode != 'RGB':
+                    product_image = product_image.convert('RGB')
+                
+                # Get product features
+                product_features = get_image_features(product_image)
+                
+                # Calculate similarity
+                similarity = 1 - cosine(query_features, product_features)
+                
+                # If similarity is above threshold, add to results
+                if similarity > threshold:
+                    similar_products.append((product, similarity))
+                
+            except Exception as e:
+                logger.error(f"Error processing product {product.id}: {str(e)}")
+                continue
+        
+        # Sort by similarity
+        similar_products.sort(key=lambda x: x[1], reverse=True)
+        
+        return [product for product, _ in similar_products[:6]]  # Return top 6 products
+        
+    except Exception as e:
+        logger.error(f"Error finding similar products: {str(e)}")
+        raise
+
+def image_search(request):
+    logger.debug("Image search view called")
+    
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        logger.debug("POST request received with image")
+        try:
+            uploaded_file = request.FILES['search_image']
+            logger.debug(f"Uploaded file type: {type(uploaded_file)}")
+            logger.debug(f"File name: {uploaded_file.name}")
+            
+            # Read the file content and create image
+            image_data = uploaded_file.read()
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Convert to RGB if neededrelated 
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Get image features
+            query_features = get_image_features(image)
+            
+            # Find similar products
+            similar_products = find_similar_products(query_features)
+            
+            if not similar_products:
+                messages.warning(request, 'No similar electronic products found for your image. Please try with a different image.')
+                return render(request, 'image_search.html', {
+                    'title': 'Search by Image',
+                    'show_results': False
+                })
+            
+            # Reset file pointer for template rendering
+            uploaded_file.seek(0)
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'title': 'Search Results',
+                'uploaded_image': uploaded_file
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try with a different image.')
+            return render(request, 'image_search.html', {
+                'title': 'Search by Image',
+                'show_results': False
+            })
+    
+    # GET request
+    return render(request, 'image_search.html', {
+        'title': 'Search by Image',
+        'show_results': False
+    })
+
+from django.shortcuts import render
+from django.contrib import messages
+from .utils.image_processor import ImageProcessor
+from .models import Product
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Initialize the image processor
+image_processor = ImageProcessor()
+
+def image_search(request):
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        try:
+            uploaded_file = request.FILES['search_image']
+            
+            # Extract features from uploaded image
+            query_features = image_processor.extract_features(uploaded_file)
+            
+            # Get all products and their features
+            products = Product.objects.all()
+            product_features = []
+            valid_products = []
+            
+            for product in products:
+                try:
+                    features = image_processor.extract_features(product.image.path)
+                    product_features.append(features)
+                    valid_products.append(product)
+                except Exception as e:
+                    logger.error(f"Error processing product {product.id}: {str(e)}")
+                    continue
+            
+            # Find similar products
+            similar_indices = image_processor.find_similar_products(
+                query_features, 
+                product_features
+            )
+            
+            # Get the actual products
+            similar_products = [
+                valid_products[idx] for idx, _ in similar_indices
+            ]
+            
+            if not similar_products:
+                messages.warning(
+                    request, 
+                    'No similar electronic products found. Please try with a different image.'
+                )
+                return render(request, 'image_search.html', {'show_results': False})
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'uploaded_image': uploaded_file,
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try again.')
+            return render(request, 'image_search.html', {'show_results': False})
+    
+    return render(request, 'image_search.html', {'show_results': False})

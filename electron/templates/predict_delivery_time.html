@@ -4,21 +4,19 @@
 <section class="predict-delivery-time-section">
     <div class="container">
         <h2 class="text-center my-4">Delivery Time Prediction</h2>
-        <div class="card">
-            <div class="card-body text-center">
-                {% comment %} <h4>Order ID: {{ order.id }}</h4>
-                <h5>Delivery Location: {{ order.address.place }}</h5> {% endcomment %}
-                <div class="delivery-prediction">
-                    <h3>Delivery Time Prediction</h3>
-                    <p>Order ID: {{ order.id }}</p>
-                    <p>Order Placed: {{ order_time }}</p>
-                    <p>Delivery Location: {{ order.address.place }}</p>
-                    <p>{{ predicted_time }}</p>
-                    
-                    <small>* Delivery times are estimates based on historical data and may vary based on location and availability</small>
+        <div class="card shadow-lg border-0 rounded">
+            <div class="card-body">
+                <div class="delivery-prediction text-center">
+                    <h3 class="mb-3">Your Delivery Prediction</h3>
+                    <p class="lead">Order ID: <strong>{{ order.id }}</strong></p>
+                    <p class="lead">Order Placed: <strong>{{ order_time }}</strong></p>
+                    <p class="lead">Delivery Location: <strong>{{ order.address.place }}</strong></p>
+                    <h4 class="mt-4">Predicted Delivery Time:</h4>
+                    <p class="display-4 text-primary"><strong>{{ predicted_time }}</strong></p>
+                    <small class="text-muted">* Delivery times are estimates based on historical data and may vary based on location and availability.</small>
                 </div>
-                <div class="mt-4">
-                    <a href="{% url 'orders' %}" class="btn btn-primary">Back to Orders</a>
+                <div class="mt-4 text-center">
+                    <a href="{% url 'orders' %}" class="btn btn-primary btn-lg">Back to Orders</a>
                 </div>
             </div>
         </div>
@@ -26,27 +24,36 @@
 </section>
 
 <style>
+    body {
+        background-color: #f8f9fa;
+    }
     .predict-delivery-time-section {
         padding: 2rem 0;
     }
     .card {
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        border-radius: 10px;
-        margin: 0 auto;
-        max-width: 600px;
+        border-radius: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    .delivery-time {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 5px;
+    .delivery-prediction {
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 1rem;
+        border-left: 4px solid #007bff;
     }
     .lead {
-        font-size: 1.5rem;
-        color: #007bff;
-        margin-bottom: 0;
+        font-size: 1.25rem;
+        color: #343a40;
     }
-    .text-muted.small {
+    .display-4 {
+        font-size: 2.5rem;
+        color: #007bff;
+    }
+    .text-muted {
         font-size: 0.875rem;
+    }
+    .btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
     }
 </style>
 {% endblock %} 

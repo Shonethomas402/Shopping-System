@@ -176,6 +176,7 @@ urlpatterns = [
     path('order/<int:order_id>/', views.order_detail, name='order_detail'),
     # path('deliveryboy/login/', views.deliveryboy_login, name='deliveryboy_login'),
     # path('deliveryboy/logout/', views.deliveryboy_logout, name='logout'),
+    path('product/<int:id>/', views.product_detail, name='product_detail'),
 ]
     
 
