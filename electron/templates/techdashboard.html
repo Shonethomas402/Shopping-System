@@ -59,7 +59,7 @@
                         
                         <!-- Action Buttons for Pending Requests -->
                         <div class="mt-3">
-                            <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                            <form action="{% url 'techdashboard' %}" method="POST" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="request_id" value="{{ request.id }}">
                                 <input type="hidden" name="action" value="accept">
@@ -69,7 +69,7 @@
                                 </button>
                             </form>
                             
-                            <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                            <form action="{% url 'techdashboard' %}" method="POST" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="request_id" value="{{ request.id }}">
                                 <input type="hidden" name="action" value="reject">
@@ -105,7 +105,7 @@
                         <!-- Action Buttons for Active Requests -->
                         <div class="mt-3">
                             {% if request.status == 'approved' %}
-                                <form action="{% url 'tech_dashboard' %}" method="POST" class="d-inline">
+                                <form action="{% url 'techdashboard' %}" method="POST" class="d-inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ request.id }}">
                                     <input type="hidden" name="action" value="complete">
@@ -120,6 +120,30 @@
                 </div>
             {% endfor %}
         {% endif %}
+
+        <!-- Completed Requests Section -->
+        {% if completed_requests %}
+            <h2 class="mb-4 mt-5">Completed Repair Requests</h2>
+            {% for request in completed_requests %}
+                <div class="card repair-request-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Request ID: #{{ request.id }}</h5>
+                        <p class="card-text">
+                            <strong>Device Type:</strong> {{ request.device_type }}<br>
+                            <strong>PIN:</strong> {{ request.pin_number }}<br>
+                            <strong>Status:</strong> 
+                            <span class="badge badge-success">{{ request.status }}</span><br>
+                            <strong>Description:</strong> {{ request.issue_description }}
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Created: {{ request.created_at|date:"d M Y H:i" }}
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -128,7 +152,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Handle form submissions with confirmation
-        const actionForms = document.querySelectorAll('form[action="{% url 'tech_dashboard' %}"]');
+        const actionForms = document.querySelectorAll('form[action="{% url 'techdashboard' %}"]');
         
         actionForms.forEach(form => {
             form.addEventListener('submit', function(e) {

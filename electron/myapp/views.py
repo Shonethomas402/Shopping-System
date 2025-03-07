@@ -42,6 +42,9 @@ from django.urls import reverse
 from .models import Order, Cart, CartItems, OrderItem
 import razorpay
 
+# Initialize Razorpay client
+client = razorpay.Client(auth=(settings.RAZORPAY_API_KEY, settings.RAZORPAY_API_SECRET))
+
 def home(request):
     products = Product.objects.all()
     #categories = Category.objects.all()  # Fetching categories
@@ -136,20 +139,24 @@ def save_for_later(request, product_id):
 #     return redirect('view_saved_items')
 @login_required
 def profile(request):
-    # Get recent orders with delivery status
+    # Get recent orders
     recent_orders = Order.objects.filter(
         user=request.user
-    ).order_by('-created_at')[:5]  # Get last 5 orders
+    ).order_by('-created_at')[:5]
 
-    # Get counts for dashboard
-    orders_count = Order.objects.filter(user=request.user).count()
-    wishlist_count = Wishlist.objects.filter(user=request.user).count()
-
+    # Get completed orders that can receive feedback
+    completed_orders = Order.objects.filter(
+        user=request.user,
+        status='Completed'  # Make sure this matches your status value exactly
+    ).prefetch_related('feedback').order_by('-created_at')  # Changed from 'orderfeedback' to 'feedback'
+    
     context = {
         'user': request.user,
         'recent_orders': recent_orders,
-        'orders_count': orders_count,
-        'wishlist_count': wishlist_count,
+        'completed_orders': completed_orders,
+        'orders_count': Order.objects.filter(user=request.user).count(),
+        'wishlist_count': Wishlist.objects.filter(user=request.user).count(),
+        'reviews_count': OrderFeedback.objects.filter(order__user=request.user).count(),
     }
     
     return render(request, 'profile.html', context)
@@ -638,33 +645,10 @@ def delete_delivery_address(request, address_id):
 def buy_now(request, product_id):
     # Logic for the "Buy Now" action, such as adding the product to the cart and redirecting to checkout
     # For now, let's redirect the user to the checkout page
-    return redirect('checkout')
+    return redirect('delivery_address_list')
 
 
-# @login_required
-# def update_profile(request):
-#     try:
-#         profilee = request.user.profilee
-#     except Profilee.DoesNotExist:
-#         profilee = Profilee.objects.create(user=request.user)
 
-#     if request.method == 'POST':
-#         form = ProfileeUpdateForm(request.POST, instance=profilee)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, 'Profile updated successfully!')
-#             return redirect('profilee')
-#     else:
-#         form = ProfileeUpdateForm(instance=profilee)
-#     return render(request, 'update_profile.html', {'form': form})
-
-# @login_required
-# def profilee_view(request):
-#     try:
-#         profilee = request.user.profilee
-#     except Profilee.DoesNotExist:
-#         profilee = Profilee.objects.create(user=request.user)
-#     return render(request, 'profilee.html', {'profilee': profilee})
 @login_required
 def profile_view(request):
     return render(request, 'profile.html', {'user': request.user})
@@ -873,52 +857,54 @@ def confirm_order(request):
 
         # Calculate total price
         total_price = sum(item.product.price * item.quantity for item in cart_items)
-        total_price_paise = int(float(total_price) * 100)  # Convert to paise for Razorpay
+        total_price_paise = int(total_price * 100)  # Convert to paise
 
         # Create Razorpay Order
         try:
             payment_order = client.order.create({
                 'amount': total_price_paise,
-                'currency': "INR",
+                'currency': 'INR',
                 'payment_capture': '1'
             })
+            
+            # Create Order in database
+            order = Order.objects.create(
+                user=request.user,
+                status='Pending',
+                total_price=total_price,
+                payment_id=payment_order['id'],
+                address_id=selected_address_id
+            )
+
+            # Create OrderItems
+            for cart_item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                    price=cart_item.product.price
+                )
+
+            # Store order ID in session
+            request.session['current_order_id'] = order.id
+
+            # Prepare context for payment
+            context = {
+                'order': order,
+                'cart_items': cart_items,
+                'total_price': total_price,
+                'razorpay_order_id': payment_order['id'],
+                'razorpay_merchant_key': settings.RAZORPAY_API_KEY,
+                'razorpay_amount': total_price_paise,
+                'callback_url': request.build_absolute_uri(reverse('payment_response'))
+            }
+
+            return render(request, 'payment.html', context)
+
         except Exception as e:
             logger.error(f"Razorpay order creation failed: {str(e)}")
             messages.error(request, "Payment gateway error. Please try again.")
             return redirect('view_cart')
-
-        # Create Order in database
-        order = Order.objects.create(
-            user=request.user,
-            status='Pending',
-            total_price=total_price,
-            payment_id=payment_order['id'],
-            address_id=selected_address_id
-        )
-        logger.debug(f"Order created: {order.id} with payment_id: {order.payment_id}")
-
-        # Create OrderItems
-        for cart_item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=cart_item.product,
-                quantity=cart_item.quantity
-            )
-            request.session['current_order_id'] = order.id
-
-
-        # Prepare context for payment
-        context = {
-            'order': order,
-            'cart_items': cart_items,
-            'total_price': total_price,
-            'razorpay_order_id': payment_order['id'],
-            'razorpay_merchant_key': settings.RAZORPAY_API_KEY,
-            'razorpay_amount': total_price_paise,
-            'callback_url': request.build_absolute_uri(reverse('payment_response')),
-        }
-
-        return render(request, 'payment.html', context)
 
     except Exception as e:
         logger.error(f"Error in confirm_order: {str(e)}")
@@ -1754,7 +1740,7 @@ def tech_login(request):
                             request.session['technician_name'] = tech.name
                             request.session['technician_role'] = role
                             messages.success(request, 'Login successful!')
-                            return redirect('tech_dashboard')
+                            return redirect('techdashboard')
                         else:
                             if tech.name.lower() != name.lower():
                                 messages.error(request, 'Name does not match our records.')
@@ -1772,41 +1758,137 @@ def tech_login(request):
 
     return render(request, 'tech_login.html')
 
-@login_required
-def tech_dashboard(request):
-    if request.method == 'POST':
-        request_id = request.POST.get('request_id')
-        action = request.POST.get('action')
+# @login_required
+# def techdashboard(request):
+#     if request.method == 'POST':
+#         request_id = request.POST.get('request_id')
+#         action = request.POST.get('action')
         
-        try:
-            repair_request = get_object_or_404(RepairRequest, id=request_id)
+#         try:
+#             repair_request = get_object_or_404(RepairRequest, id=request_id)
             
-            if action == 'accept':
-                repair_request.status = 'approved'
-                messages.success(request, 'Repair request accepted successfully.')
-            elif action == 'reject':
-                repair_request.status = 'rejected'
-                messages.warning(request, 'Repair request rejected.')
-            elif action == 'complete':
-                repair_request.status = 'completed'
-                messages.success(request, 'Repair request marked as completed.')
+#             if action == 'accept':
+#                 repair_request.status = 'approved'
+#                 messages.success(request, 'Repair request accepted successfully.')
+#             elif action == 'reject':
+#                 repair_request.status = 'rejected'
+#                 messages.warning(request, 'Repair request rejected.')
+#             elif action == 'complete':
+#                 repair_request.status = 'completed'
+#                 messages.success(request, 'Repair request marked as completed.')
             
-            repair_request.save()
-            return redirect('tech_dashboard')
+#             repair_request.save()
+#             return redirect('techdashboard')
             
-        except Exception as e:
-            messages.error(request, f'Error processing request: {str(e)}')
+#         except Exception as e:
+#             messages.error(request, f'Error processing request: {str(e)}')
     
-    pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
-    active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
+#     pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
+#     active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
     
-    context = {
-        'pending_requests': pending_requests,
-        'active_requests': active_requests,
-        'technician': request.user,
-    }
+#     context = {
+#         'pending_requests': pending_requests,
+#         'active_requests': active_requests,
+#         'technician': request.user,
+#     }
     
-    return render(request, 'techdashboard.html', context)
+#     return render(request, 'techdashboard.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import RepairRequest, Technician
+# views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import RepairRequest, Technician
+
+def techdashboard(request):
+    # Check if technician is logged in using session
+    technician_id = request.session.get('technician_id')
+    if not technician_id:
+        messages.error(request, 'Please login first.')
+        return redirect('tech_login')
+    
+    try:
+        # Get the technician object
+        technician = get_object_or_404(Technician, id=technician_id)
+        
+        if request.method == 'POST':
+            request_id = request.POST.get('request_id')
+            action = request.POST.get('action')
+            
+            try:
+                repair_request = get_object_or_404(RepairRequest, id=request_id)
+                
+                if action == 'accept':
+                    if repair_request.status == 'pending':
+                        repair_request.status = 'approved'
+                        repair_request.technician = technician
+                        messages.success(request, 'Repair request accepted successfully.')
+                    else:
+                        messages.error(request, 'This request has already been processed.')
+                
+                elif action == 'reject':
+                    if repair_request.status == 'pending':
+                        repair_request.status = 'rejected'
+                        repair_request.technician = technician
+                        messages.warning(request, 'Repair request rejected.')
+                    else:
+                        messages.error(request, 'This request has already been processed.')
+                
+                elif action == 'complete':
+                    if repair_request.status == 'approved' and repair_request.technician == technician:
+                        repair_request.status = 'completed'
+                        messages.success(request, 'Repair request marked as completed.')
+                    else:
+                        messages.error(request, 'Cannot complete this request.')
+                
+                repair_request.save()
+                
+            except RepairRequest.DoesNotExist:
+                messages.error(request, 'Repair request not found.')
+            except Exception as e:
+                messages.error(request, f'Error processing request: {str(e)}')
+            
+            return redirect('techdashboard')
+        
+        # Get requests for display
+        pending_requests = RepairRequest.objects.filter(
+            status='pending',
+            technician__isnull=True  # Only show requests not assigned to any technician
+        ).order_by('-created_at')
+        
+        active_requests = RepairRequest.objects.filter(
+            status='approved',
+            technician=technician
+        ).order_by('-created_at')
+        
+        context = {
+            'pending_requests': pending_requests,
+            'active_requests': active_requests,
+            'technician': {
+                'name': request.session.get('technician_name'),
+                'id': technician_id,
+                'role': request.session.get('technician_role')
+            }
+        }
+        
+        return render(request, 'techdashboard.html', context)
+        
+    except Technician.DoesNotExist:
+        messages.error(request, 'Technician account not found.')
+        request.session.flush()
+        return redirect('tech_login')
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('tech_login')
+
+# Optional: Add logout view
+def tech_logout(request):
+    # Clear session data
+    request.session.flush()
+    messages.success(request, 'Logged out successfully.')
+    return redirect('tech_login')
 
 def deliveryboy_dashboard(request):
     if 'deliveryboy_id' not in request.session:
@@ -2641,3 +2723,420 @@ def image_search(request):
             return render(request, 'image_search.html', {'show_results': False})
     
     return render(request, 'image_search.html', {'show_results': False})
+
+
+def product_recommendations(request):
+    categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        selected_category = request.POST.get('category')
+        try:
+            preferences = {
+                'category': selected_category,
+                'min_price': request.POST.get('min_price'),
+                'max_price': request.POST.get('max_price'),
+                'specifications': request.POST.get('specifications')
+            }
+
+            # Get AI recommendations
+            ai_recommendations = gemini_recommender.get_recommendations(preferences)
+            
+            # Debug print
+            print("AI Recommendations:", ai_recommendations)
+
+            context = {
+                'categories': categories,
+                'ai_recommendations': ai_recommendations,
+                'selected_category': selected_category,  # Make sure this is included
+                'min_price': preferences['min_price'],
+                'max_price': preferences['max_price'],
+                'specifications': preferences['specifications'],
+                'show_results': True
+            }
+
+            return render(request, 'product_recommendations.html', context)
+
+        except Exception as e:
+            print(f"Error in view: {str(e)}")  # Debug print
+            messages.error(request, f'Error getting recommendations: {str(e)}')
+            return render(request, 'product_recommendations.html', {
+                'categories': categories,
+                'show_results': False,
+                'error': str(e)
+            })
+
+    # Initial GET request
+    context = {
+        'categories': categories,
+        'show_results': False
+    }
+    return render(request, 'product_recommendations.html', context)
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import Product, Category
+from django.db.models import Q
+import google.generativeai as genai
+from django.conf import settings
+
+# Configure Gemini with the correct API key
+GEMINI_API_KEY = "AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc"  # Replace with your valid API key
+genai.configure(api_key=GEMINI_API_KEY)
+
+class GeminiRecommender:
+    def __init__(self):
+        try:
+            # Update to use gemini-2.0-flash instead of gemini-pro
+            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            print("Gemini model initialized successfully")
+        except Exception as e:
+            print(f"Error initializing Gemini model: {str(e)}")
+            self.model = None
+
+    def get_recommendations(self, preferences):
+        if not self.model:
+            print("Model not initialized properly")
+            return []
+            
+        try:
+            prompt = self._construct_prompt(preferences)
+            
+            # Generate content with safety settings
+            generation_config = {
+                "temperature": 0.7,
+                "top_p": 1,
+                "top_k": 1,
+                "max_output_tokens": 2048,
+            }
+
+            response = self.model.generate_content(prompt)
+            
+            # Debug print
+            print("Raw Gemini Response:", response.text)
+            
+            return self._process_response(response.text)
+            
+        except Exception as e:
+            print(f"Error in Gemini recommendation: {str(e)}")
+            return []
+
+    def _construct_prompt(self, preferences):
+        category = preferences.get('category', 'Any')
+        min_price = preferences.get('min_price', '0')
+        max_price = preferences.get('max_price', 'Any')
+        specs = preferences.get('specifications', 'None specified')
+
+        prompt = f"""
+        Act as an electronics product expert. Recommend 3 products based on:
+        - Category: {category}
+        - Budget: ₹{min_price} - ₹{max_price}
+        - Specifications: {specs}
+
+        For each product, provide:
+        1. Name
+        2. Key features
+        3. Price in ₹
+        4. Why it's recommended
+
+        Format each recommendation exactly like this:
+        1. Product Name | Features | ₹Price | Reason
+        2. Product Name | Features | ₹Price | Reason
+        3. Product Name | Features | ₹Price | Reason
+
+        Keep prices realistic and current.
+        """
+        return prompt
+
+    def _process_response(self, response_text):
+        try:
+            recommendations = []
+            lines = [line.strip() for line in response_text.split('\n') if line.strip()]
+            
+            for line in lines:
+                if line[0].isdigit() and '|' in line:
+                    parts = [part.strip() for part in line.split('|')]
+                    if len(parts) >= 3:
+                        rec = {
+                            'name': parts[0].split('.')[1].strip() if '.' in parts[0] else parts[0],
+                            'features': parts[1].strip(),
+                            'price': parts[2].strip(),
+                            'reason': parts[3].strip() if len(parts) > 3 else 'Recommended based on preferences'
+                        }
+                        recommendations.append(rec)
+            
+            return recommendations
+        except Exception as e:
+            print(f"Error processing response: {str(e)}")
+            return []
+
+# Initialize the recommender
+gemini_recommender = GeminiRecommender()
+def product_recommendations(request):
+    categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        selected_category = request.POST.get('category')
+        try:
+            preferences = {
+                'category': selected_category,
+                'min_price': request.POST.get('min_price'),
+                'max_price': request.POST.get('max_price'),
+                'specifications': request.POST.get('specifications')
+            }
+
+            # Get AI recommendations
+            ai_recommendations = gemini_recommender.get_recommendations(preferences)
+            
+            # Debug print
+            print("AI Recommendations:", ai_recommendations)
+
+            context = {
+                'categories': categories,
+                'ai_recommendations': ai_recommendations,
+                'selected_category': selected_category,  # Make sure this is included
+                'min_price': preferences['min_price'],
+                'max_price': preferences['max_price'],
+                'specifications': preferences['specifications'],
+                'show_results': True
+            }
+
+            return render(request, 'product_recommendations.html', context)
+
+        except Exception as e:
+            print(f"Error in view: {str(e)}")  # Debug print
+            messages.error(request, f'Error getting recommendations: {str(e)}')
+            return render(request, 'product_recommendations.html', {
+                'categories': categories,
+                'show_results': False,
+                'error': str(e)
+            })
+
+    # Initial GET request
+    context = {
+        'categories': categories,
+        'show_results': False
+    }
+    return render(request, 'product_recommendations.html', context)
+
+def get_similar_products(request, category_name):
+    try:
+        # Get the category
+        category = Category.objects.get(name=category_name)
+        
+        # Get products from the same category
+        similar_products = Product.objects.filter(
+            category=category
+        ).order_by('?')[:6]  # Get 6 random products from the category
+        
+        context = {
+            'similar_products': similar_products,
+            'category_name': category_name
+        }
+        
+        return render(request, 'similar_products.html', context)
+    except Category.DoesNotExist:
+        messages.error(request, f'Category {category_name} not found.')
+        return redirect('product_recommendations')
+    except Exception as e:
+        print(f"Error in get_similar_products: {str(e)}")
+        messages.error(request, 'An error occurred while fetching similar products.')
+        return redirect('product_recommendations')
+
+import logging
+from django.shortcuts import render
+from .models import Product
+
+logger = logging.getLogger(__name__)
+
+def similar_products_view(request, category_name):
+    try:
+        similar_products = Product.objects.filter(category__name=category_name)  # Adjust as necessary
+        return render(request, 'similar_products.html', {'similar_products': similar_products, 'category_name': category_name})
+    except Exception as e:
+        logger.error(f"Error fetching similar products: {e}")
+        return render(request, 'similar_products.html', {'error': 'An error occurred while fetching similar products.'})
+from django.shortcuts import render, get_object_or_404
+from .models import Product
+import pandas as pd
+
+def purchase_probability_view(request, product_id):
+    # Get the product
+    product = get_object_or_404(Product, id=product_id)
+    
+    # Load the purchase probability dataset
+    dataset_path = os.path.join(os.path.dirname(__file__), 'datasets', 'purchase_probability_dataset.csv')
+    
+    try:
+        df = pd.read_csv(dataset_path)
+        # Get the row for this product
+        product_data = df[df['product_id'] == product_id].iloc[0]
+        
+        stats = {
+            'wishlist_count': int(product_data['wishlist_count']),
+            'cart_count': int(product_data['cart_count']),
+            'order_count': int(product_data['order_count']),
+            'recent_orders': int(product_data['recent_orders']),
+            'category_order_count': int(product_data['category_order_count']),
+            'price_factor': round(float(product_data['price_factor']), 2)
+        }
+        
+        probability = float(product_data['purchase_probability'])
+        
+    except Exception as e:
+        # If there's any error, provide default values
+        stats = {
+            'wishlist_count': 0,
+            'cart_count': 0,
+            'order_count': 0,
+            'recent_orders': 0,
+            'category_order_count': 0,
+            'price_factor': 1.0
+        }
+        probability = 15.0  # Base probability
+        
+    context = {
+        'product': product,
+        'stats': stats,
+        'probability': probability
+    }
+    
+    return render(request, 'purchase_probability.html', context)
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
+
+@login_required
+def submit_order_feedback(request, order_id):
+    if request.method == 'POST':
+        try:
+            order = get_object_or_404(Order, id=order_id, user=request.user)
+            
+            # Check if feedback exists
+            try:
+                if hasattr(order, 'feedback') and order.feedback:
+                    messages.error(request, 'Feedback already submitted for this order.')
+                    return redirect('profile')
+            except Order.feedback.RelatedObjectDoesNotExist:
+                pass  # No feedback exists, continue with submission
+            
+            rating = request.POST.get('rating')
+            comment = request.POST.get('comment')
+            
+            # Validate the data
+            if not rating or not comment:
+                messages.error(request, 'Both rating and comment are required.')
+                return redirect('profile_reviewpage') + f'?order_id={order_id}'
+            
+            # Create feedback
+            OrderFeedback.objects.create(
+                order=order,
+                rating=int(rating),
+                comment=comment.strip()
+            )
+            
+            messages.success(request, 'Thank you for your feedback!')
+            return redirect('profile')
+            
+        except Exception as e:
+            print(f"Error submitting feedback: {str(e)}")  # For debugging
+            messages.error(request, 'An error occurred while submitting feedback.')
+            return redirect('profile_reviewpage') + f'?order_id={order_id}'
+    
+    return redirect('profile')
+
+# @login_required
+# def profile(request):
+#     # Get recent orders with delivery status
+#     recent_orders = Order.objects.filter(
+#         user=request.user
+#     ).order_by('-created_at')[:5]  # Get last 5 orders
+    
+#     # Get completed orders for feedback section
+#     completed_orders = Order.objects.filter(
+#         user=request.user,
+#         status='Completed'
+#     ).order_by('-created_at')
+    
+#     context = {
+#         'user': request.user,
+#         'recent_orders': recent_orders,
+#         'completed_orders': completed_orders,
+#         'orders_count': recent_orders.count(),
+#         'wishlist_count': Wishlist.objects.filter(user=request.user).count(),
+#         'reviews_count': OrderFeedback.objects.filter(order__user=request.user).count(),
+#     }
+    
+#     return render(request, 'profile.html', context)
+def profile_reviewpage(request):
+    order_id = request.GET.get('order_id')
+    if not order_id:
+        messages.error(request, 'No order specified')
+        return redirect('profile')
+    
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+        
+        # Check if feedback exists using hasattr instead of directly accessing
+        try:
+            if hasattr(order, 'feedback') and order.feedback:
+                messages.warning(request, 'This order has already been reviewed')
+                return redirect('profile')
+        except Order.feedback.RelatedObjectDoesNotExist:
+            # This means there's no feedback, which is what we want
+            pass
+            
+        context = {
+            'order': order
+        }
+        return render(request, 'profile_reviewpage.html', context)
+        
+    except Order.DoesNotExist:
+        messages.error(request, 'Order not found')
+        return redirect('profile')
+
+
+def techdashboard(request):
+    technician_id = request.session.get('technician_id')
+    if not technician_id:
+        messages.error(request, 'Please login first.')
+        return redirect('tech_login')
+    
+    try:
+        technician = get_object_or_404(Technician, id=technician_id)
+        
+        # ... existing POST handling code ...
+        
+        # Get requests for display
+        pending_requests = RepairRequest.objects.filter(
+            status='pending',
+            technician__isnull=True
+        ).order_by('-created_at')
+        
+        active_requests = RepairRequest.objects.filter(
+            status='approved',
+            technician=technician
+        ).order_by('-created_at')
+        
+        # Add completed requests query
+        completed_requests = RepairRequest.objects.filter(
+            status='completed',
+            technician=technician
+        ).order_by('-created_at')
+        
+        context = {
+            'pending_requests': pending_requests,
+            'active_requests': active_requests,
+            'completed_requests': completed_requests,  # Add to context
+            'technician': {
+                'name': request.session.get('technician_name'),
+                'id': technician_id,
+                'role': request.session.get('technician_role')
+            }
+        }
+        
+        return render(request, 'techdashboard.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('tech_login')

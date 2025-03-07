@@ -111,6 +111,73 @@
                     </div>
                 </div>
 
+                <!-- Order Feedback Section -->
+                <div class="col-12 mb-4">
+                    <div class="card shadow-lg" style="border: none; border-radius: 15px; transition: transform 0.3s ease;">
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <h5 class="card-title mb-4" style="font-weight: 600;">
+                                <i class="fas fa-star text-warning mr-2"></i>Order Feedback
+                            </h5>
+                            {% if completed_orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover" style="margin-bottom: 0;">
+                                        <thead>
+                                            <tr style="border-top: none;">
+                                                <th style="border-top: none; font-weight: 600;">Order ID</th>
+                                                <th style="border-top: none; font-weight: 600;">Order Date</th>
+                                                <th style="border-top: none; font-weight: 600;">Total</th>
+                                                <th style="border-top: none; font-weight: 600;">Status</th>
+                                                <th style="border-top: none; font-weight: 600;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in completed_orders %}
+                                                <tr style="vertical-align: middle;">
+                                                    <td>#{{ order.id }}</td>
+                                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                                    <td>₹{{ order.total_price }}</td>
+                                                    <td>
+                                                        {% if order.feedback %}
+                                                            <span style="padding: 8px 12px; border-radius: 20px; background-color: #28a745; color: white;">
+                                                                <i class="fas fa-check-circle"></i> Reviewed
+                                                            </span>
+                                                        {% else %}
+                                                            <span style="padding: 8px 12px; border-radius: 20px; background-color: #ffc107; color: #000;">
+                                                                <i class="fas fa-clock"></i> Pending Review
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if not order.feedback %}
+                                                            <a href="{% url 'profile_reviewpage' %}?order_id={{ order.id }}" 
+                                                               class="btn btn-sm btn-outline-primary"
+                                                               style="border-radius: 4px;">
+                                                                <i class="fas fa-star"></i> Add Review
+                                                            </a>
+                                                        {% else %}
+                                                            <button type="button" 
+                                                                    class="btn btn-sm btn-outline-secondary"
+                                                                    onclick="showFeedback('{{ order.feedback.rating }}', '{{ order.feedback.comment }}', '{{ order.feedback.created_at|date:"M d, Y" }}')"
+                                                                    style="border-radius: 4px;">
+                                                                <i class="fas fa-eye"></i> View Review
+                                                            </button>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div style="text-align: center; padding: 2rem 0;">
+                                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No completed orders found to review.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Account Settings -->
                 <div class="col-12">
                     <div class="card shadow-lg">
@@ -137,6 +204,67 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize star rating system
+    const ratingInputs = document.querySelectorAll('.rating-stars input[type="radio"]');
+    ratingInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const stars = this.closest('.rating-stars').querySelectorAll('label i');
+            const rating = this.value;
+            
+            stars.forEach(star => star.style.color = '#ddd');
+            for(let i = 0; i < rating; i++) {
+                stars[i].style.color = '#ffd700';
+            }
+        });
+    });
+
+    // Form submission handling
+    const feedbackForms = document.querySelectorAll('form[action^="/submit-order-feedback/"]');
+    feedbackForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const rating = this.querySelector('input[name="rating"]:checked');
+            const comment = this.querySelector('textarea[name="comment"]');
+            
+            if (!rating || !comment.value.trim()) {
+                alert('Please provide both rating and comment');
+                return;
+            }
+            
+            // Submit the form
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and refresh page
+                    const modal = this.closest('.modal');
+                    $(modal).modal('hide');
+                    window.location.reload();
+                } else {
+                    alert('Error submitting feedback. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting feedback. Please try again.');
+            });
+        });
+    });
+});
+</script>
 
 <style>
     /* Dashboard Styles */
@@ -236,6 +364,51 @@
         .stat-item {
             width: 33.33%;
         }
+    }
+
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label,
+    .rating-stars input[type="radio"]:checked ~ label {
+        color: #ffd700 !important;
+    }
+    
+    .rating-stars label {
+        transition: color 0.2s ease;
+    }
+
+    .rating-stars {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+
+    .rating-stars input[type="radio"] {
+        display: none;
+    }
+
+    .rating-stars label {
+        cursor: pointer;
+        padding: 0 5px;
+        font-size: 24px;
+        color: #ddd;
+        transition: color 0.2s ease;
+    }
+
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label,
+    .rating-stars input[type="radio"]:checked ~ label {
+        color: #ffd700;
+    }
+
+    .modal-content {
+        border-radius: 15px;
+    }
+
+    .feedback-text {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 10px 0;
     }
 </style>
 {% endblock %} 

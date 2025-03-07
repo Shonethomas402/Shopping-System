@@ -1,0 +1,33 @@
+product_id,product_name,product_category,product_price,stock_level,wishlist_count,cart_count,order_count,category_order_count,recent_orders,price_factor,purchase_probability
+1,hp 500sf,laptop,23456.0,98,0,0,1,1,1,0.2,69.5
+2,realme NARZO 70x 5G,phone,14500.0,27,1,0,1,1,1,0.29,67.9
+3,Motorola Edge 50 Fusion 5G,phone,23900.0,27,0,0,2,2,2,0.47,74.4
+4,TCL 164 cm,Smart TVs,60900.0,29,0,0,1,1,1,1.79,45.3
+5,VW 80 cm,Smart TVs,8000.0,29,0,0,1,1,1,0.24,65.3
+6,Fire-Boltt Phoenix Ultra,Smartwatches,2200.0,27,1,0,2,2,2,0.82,71.0
+7,boAt Wave Sigma 3,Smartwatches,8000.0,29,1,0,1,1,1,2.98,48.3
+8,Sony Alpha ILCE-7M3K,Cameras,136500.0,28,0,0,2,2,2,0.41,74.6
+9,Sony Alpha ZV-E10L APS-C,Cameras,61500.0,29,0,0,0,0,0,0.18,45.8
+10,Lenovo ThinkBook 14,laptop,44000.0,27,1,0,1,1,1,0.38,62.9
+12,boAt Airdopes 91 Prime,Headphones,1000.0,30,0,0,0,0,0,0.6,49.0
+13,Noise Buds VS104,Headphones,899.0,49,0,0,1,1,1,0.54,68.5
+14,JBL Vibe Beam,Headphones,2499.0,60,0,0,0,0,0,1.49,40.0
+15,OnePlus Nord Buds 3,Headphones,2299.0,50,0,0,0,0,0,1.37,40.0
+16,ASUS ROG Strix Scar 16,laptop,279990.0,30,1,0,0,0,0,2.45,34.0
+17,MSI Pulse 16 AI,laptop,100000.0,50,1,0,0,0,0,0.87,40.6
+18,ROG Zephyrus G16,laptop,174990.0,50,0,0,0,0,0,1.53,35.0
+19,Lenovo IdeaPad Slim 3,laptop,64490.0,50,0,0,0,0,0,0.56,48.8
+20,iPhone 16 128 GB,phone,73400.0,50,1,0,0,0,0,1.46,38.0
+21,Samsung Galaxy S25 Ultra 5G AI,phone,122999.0,50,0,0,0,0,0,2.44,35.0
+22,Samsung Galaxy A16 5G,phone,16990.0,50,0,0,0,0,0,0.34,50.0
+23,TCL 189 cm (75 inches) 4K Ultra,Smart TVs,69990.0,50,0,0,0,0,0,2.06,35.0
+24,Samsung 108 cm (43 inches) 4K Ultra,Smart TVs,32990.0,50,0,0,0,0,0,0.97,40.6
+25,Xiaomi 108 cm (43 inches),Smart TVs,23990.0,50,0,0,0,0,0,0.71,50.8
+26,SKYWALL 81.28 cm,Smart TVs,8000.0,50,0,0,0,0,0,0.24,55.0
+27,Fastrack Limitless Glide,Smartwatches,1499.0,50,0,0,0,0,0,0.56,53.8
+28,Pebble Rio 1.39,Smartwatches,1399.0,50,0,0,0,0,0,0.52,54.6
+29,Noise Twist Round,Smartwatches,1600.0,50,0,0,0,0,0,0.6,53.0
+30,Boult Trail,Smartwatches,1400.0,50,0,0,0,0,0,0.52,54.6
+31,Sony Alpha Ilce-1 Mirrorless,Cameras,625500.0,30,0,0,0,0,0,1.87,31.0
+32,Canon EOS R5 Mark II,Cameras,552500.0,50,0,0,0,0,0,1.65,35.0
+33,Nikon Digital Camera Z 6III,Cameras,293900.0,50,0,0,0,0,0,0.88,37.4

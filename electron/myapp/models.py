@@ -4,9 +4,23 @@ from django.conf import settings
 from django.core.validators import FileExtensionValidator
 import numpy as np
 
+# Move Category and Product models to the top
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
 
+    def __str__(self):
+        return self.name
 
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.IntegerField(default=0)
+    image = models.ImageField(upload_to='product_images/', null=True, blank=True, max_length=191)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
 
+    def __str__(self):
+        return self.name
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -47,36 +61,13 @@ class Notification(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey('Product', on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def product_total(self):
         return self.product.price * self.quantity
-
-
-
-
-from django.db import models
-
-class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)  # Ensure category names are unique
-
-    def __str__(self):
-        return self.name
-
-class Product(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.IntegerField(default=0)
-    image = models.ImageField(upload_to='product_images/', null=True, blank=True, max_length=191)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE,  related_name='products')
-def __str__(self):
-        
-         return self.name
-
-  
 
 class Cart(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carts')
@@ -86,27 +77,20 @@ class Cart(models.Model):
     # def total_price(self):
     #     return sum(item.product.price * item.quantity for item in self.items.all())
 
-
-
 class CartItems(models.Model):
-
-     cart = models.ForeignKey('Cart', related_name='items', on_delete=models.CASCADE)
-     product = models.ForeignKey('Product', on_delete=models.CASCADE)
-     quantity = models.PositiveIntegerField(default=1)
-     def product_total(self):
-         return self.product.price * self.quantity
+    cart = models.ForeignKey('Cart', related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    def product_total(self):
+        return self.product.price * self.quantity
 
     #  def __str__(self):
     #      return f"{self.cart.user.username} - {self.product.name}"
 
-
 class SavedForLaterItem(models.Model):
-      user = models.ForeignKey(User, on_delete=models.CASCADE)
-      product = models.ForeignKey(Product, on_delete=models.CASCADE)
-      saved_date = models.DateTimeField(auto_now_add=True)
-
-
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    saved_date = models.DateTimeField(auto_now_add=True)
 
 class DeliveryAddress(models.Model):  # Renamed from Address to DeliveryAddress
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -154,17 +138,6 @@ class Rating(models.Model):
 
     class Meta:
         unique_together = ('user', 'product')
-
-    
-# class Technician(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='technician', null=True, blank=True)
-#     name = models.CharField(max_length=30)
-#     pin_no = models.CharField(max_length=20, unique=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-        
-#         return self.name
     
 class RepairRequest(models.Model):
     DEVICE_CHOICES = [
@@ -207,6 +180,8 @@ class RepairRequest(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    technician = models.ForeignKey('Technician', on_delete=models.SET_NULL, null=True, blank=True, related_name='repair_requests')
+
     def __str__(self):
         return f"{self.device_type} - PIN: {self.pin_number}"
 
@@ -230,13 +205,12 @@ def notify_technician(sender, instance, created, **kwargs):
         print(f"New repair request assigned to {instance.assigned_technician.name}")
 
 class Technician(models.Model):
-    name = models.CharField(max_length=15)
-    pin_number = models.CharField(max_length=7, unique=True)  # Ensure PIN is unique
-    email = models.EmailField(unique=True)  # Ensure email is unique
-
+    name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    pin_number = models.CharField(max_length=20)
+    
     def __str__(self):
         return self.name
-
 
 class Warehouse(models.Model):
     name = models.CharField(max_length=100)
@@ -279,5 +253,14 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+class OrderFeedback(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='feedback')
+    rating = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback for Order #{self.order.id}"
 
 

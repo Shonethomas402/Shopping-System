@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div style="padding-top:90px;background-color:#f8f9fa">
+    <div style="padding:20px;max-width:800px;margin:0 auto">
+        <div style="background:#fff;padding:30px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
+            <h2 style="font-size:24px;color:#2c3e50;margin-bottom:25px;text-align:center">
+                Purchase Probability Analysis
+            </h2>
+
+            <!-- Product Details -->
+            <div style="display:flex;align-items:center;margin-bottom:30px">
+                <div style="flex:0 0 150px;margin-right:20px">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                         style="width:100%;height:auto;border-radius:10px">
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="font-size:20px;color:#34495e;margin-bottom:10px">{{ product.name }}</h3>
+                    <p style="color:#7f8c8d;margin-bottom:5px">Price: ₹{{ product.price }}</p>
+                    <p style="color:#7f8c8d;margin-bottom:5px">Category: {{ product.category.name }}</p>
+                    <p style="color:#7f8c8d">Stock Level: {{ product.stock }}</p>
+                </div>
+            </div>
+
+            <!-- Price Range Analysis -->
+            <div style="background:#f8f9fa;padding:20px;border-radius:10px;margin-bottom:30px">
+                <h4 style="font-size:18px;color:#2c3e50;margin-bottom:15px">Price Analysis</h4>
+                <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:15px">
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Price Category</p>
+                        <p style="font-size:18px;color:#2c3e50">
+                            {% if stats.price_range == 'budget' %}
+                                Budget Range
+                            {% elif stats.price_range == 'mid' %}
+                                Mid Range
+                            {% else %}
+                                Premium Range
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Price Factor</p>
+                        <p style="font-size:18px;color:#{% if stats.price_factor < 1 %}27ae60{% else %}e74c3c{% endif %}">
+                            {{ stats.price_factor }}x category average
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Statistics -->
+            <div style="background:#f8f9fa;padding:20px;border-radius:10px;margin-bottom:30px">
+                <h4 style="font-size:18px;color:#2c3e50;margin-bottom:15px">Product Analytics</h4>
+                <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:15px">
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Stock Level</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.stock_level }} units</p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Wishlist Count</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.wishlist_count }}</p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Cart Count</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.cart_count }}</p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Total Orders</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.order_count }}</p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Recent Orders</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.recent_orders }}</p>
+                    </div>
+                    <div style="background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,0.05)">
+                        <p style="color:#7f8c8d;margin-bottom:5px">Category Orders</p>
+                        <p style="font-size:18px;color:#2c3e50">{{ stats.category_order_count }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Probability Display -->
+            <div style="text-align:center">
+                <div style="background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 15px rgba(0,0,0,0.1);display:inline-block">
+                    <h3 style="font-size:20px;color:#2c3e50;margin-bottom:15px">Purchase Probability</h3>
+                    <div style="font-size:48px;font-weight:bold;color:{% if probability >= 70 %}#27ae60{% elif probability >= 40 %}#f39c12{% else %}#e74c3c{% endif %}">
+                        {{ probability }}%
+                    </div>
+                    <p style="color:#7f8c8d;margin-top:10px">
+                        {% if probability >= 70 %}
+                            Very High Chance of Purchase
+                        {% elif probability >= 50 %}
+                            High Chance of Purchase
+                        {% elif probability >= 30 %}
+                            Moderate Chance of Purchase
+                        {% else %}
+                            Low Chance of Purchase
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Contributing Factors -->
+            <div style="margin-top:30px;background:#f8f9fa;padding:20px;border-radius:10px">
+                <h4 style="font-size:16px;color:#2c3e50;margin-bottom:15px">Contributing Factors</h4>
+                <ul style="list-style:none;padding:0">
+                    {% if stats.stock_level > 0 %}
+                    <li style="margin-bottom:10px;color:#7f8c8d">
+                        <i class="fas fa-check-circle" style="color:#27ae60"></i>
+                        Product is well stocked ({{ stats.stock_level }} units available)
+                    </li>
+                    {% endif %}
+                    
+                    {% if stats.price_factor < 1 %}
+                    <li style="margin-bottom:10px;color:#7f8c8d">
+                        <i class="fas fa-tag" style="color:#3498db"></i>
+                        Price is {{ stats.price_factor }}x below category average
+                    </li>
+                    {% endif %}
+                    
+                    {% if stats.recent_orders > 0 %}
+                    <li style="margin-bottom:10px;color:#7f8c8d">
+                        <i class="fas fa-shopping-cart" style="color:#e67e22"></i>
+                        {{ stats.recent_orders }} orders in the last 30 days
+                    </li>
+                    {% endif %}
+                    
+                    {% if stats.wishlist_count > 0 or stats.cart_count > 0 %}
+                    <li style="margin-bottom:10px;color:#7f8c8d">
+                        <i class="fas fa-heart" style="color:#e74c3c"></i>
+                        High customer interest ({{ stats.wishlist_count }} wishlist, {{ stats.cart_count }} cart)
+                    </li>
+                    {% endif %}
+                    
+                    {% if stats.category_order_count > 0 %}
+                    <li style="margin-bottom:10px;color:#7f8c8d">
+                        <i class="fas fa-chart-line" style="color:#9b59b6"></i>
+                        Popular category with {{ stats.category_order_count }} recent orders
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

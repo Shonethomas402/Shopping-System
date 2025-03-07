@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Order #{{ order.id }} Review</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Order Details -->
+                    <div class="order-details mb-4">
+                        <h5>Order Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Order Date:</strong> {{ order.created_at|date:"M d, Y" }}</p>
+                                <p><strong>Total Amount:</strong> ₹{{ order.total_price }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> {{ order.status }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Review Form -->
+                    <form action="{% url 'submit_order_feedback' order.id %}" method="POST" id="reviewForm">
+                        {% csrf_token %}
+                        <div class="form-group mb-4">
+                            <label class="h5">Your Rating</label>
+                            <div class="rating-stars my-3">
+                                {% for i in '54321'|make_list %}
+                                    <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                                    <label for="star{{ i }}">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="h5">Your Comments</label>
+                            <textarea name="comment" class="form-control" rows="4" required 
+                                    placeholder="Please share your experience with this order..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'profile' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Profile
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit Review
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+}
+
+.rating-stars input[type="radio"] {
+    display: none;
+}
+
+.rating-stars label {
+    cursor: pointer;
+    padding: 0 5px;
+    font-size: 30px;
+    color: #ddd;
+    transition: all 0.2s ease;
+}
+
+.rating-stars label:hover,
+.rating-stars label:hover ~ label,
+.rating-stars input[type="radio"]:checked ~ label {
+    color: #ffd700;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+textarea.form-control {
+    border-radius: 10px;
+    padding: 15px;
+}
+
+textarea.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    border-color: #80bdff;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingInputs = document.querySelectorAll('.rating-stars input[type="radio"]');
+    const reviewForm = document.getElementById('reviewForm');
+
+    // Handle star rating
+    ratingInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const stars = document.querySelectorAll('.rating-stars label i');
+            const rating = this.value;
+            
+            stars.forEach((star, index) => {
+                star.style.color = index < rating ? '#ffd700' : '#ddd';
+            });
+        });
+    });
+
+    // Form submission
+    reviewForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const rating = this.querySelector('input[name="rating"]:checked');
+        const comment = this.querySelector('textarea[name="comment"]');
+        
+        if (!rating || !comment.value.trim()) {
+            alert('Please provide both rating and comment');
+            return;
+        }
+        
+        this.submit();
+    });
+});
+</script>
+{% endblock %}

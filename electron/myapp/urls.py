@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView
 from .views import delivery_address_list, add_delivery_address, edit_delivery_address, delete_delivery_address
 from .views import order_management,tech_login,technician_management,technician_login,deliveryboy_management
+from .views import purchase_probability_view
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -160,7 +161,7 @@ urlpatterns = [
     # path('repair-requests/delete/<int:pk>/', views.delete_repair_request, name='delete_repair_request'),
     path('tech-login/', views.tech_login, name='tech_login'),
     # path('techdashboard/', techdashboard_view, name='techdashboard'),
-    path('tech-dashboard/', views.tech_dashboard, name='tech_dashboard'), 
+    path('techdashboard/', views.techdashboard, name='techdashboard'), 
 
     path('accept-repair-request/<int:request_id>/', views.accept_repair_request, name='accept_repair_request'),
     path('delete-repair-request/<int:request_id>/', views.delete_repair_request, name='delete_repair_request'),
@@ -177,6 +178,16 @@ urlpatterns = [
     # path('deliveryboy/login/', views.deliveryboy_login, name='deliveryboy_login'),
     # path('deliveryboy/logout/', views.deliveryboy_logout, name='logout'),
     path('product/<int:id>/', views.product_detail, name='product_detail'),
+    path('recommendations/', views.product_recommendations, name='product_recommendations'),
+    path('similar-products/<str:category_name>/', views.get_similar_products, name='similar_products'),
+    path('purchase_probability/<int:product_id>/', purchase_probability_view, name='purchase_probability'),
+    #path('tech-dashboard/', views.tech_dashboard, name='tech_dashboard'),
+    path('order/<int:order_id>/feedback/', views.submit_order_feedback, name='submit_order_feedback'),
+
+    path('profile/', views.profile, name='profile'),
+    path('order/<int:order_id>/feedback/', views.submit_order_feedback, name='submit_order_feedback'),
+    path('submit-order-feedback/<int:order_id>/', views.submit_order_feedback, name='submit_order_feedback'),
+    path('profile_reviewpage/', views.profile_reviewpage, name='profile_reviewpage'),
 ]
     
 
