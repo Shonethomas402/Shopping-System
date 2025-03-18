@@ -7,6 +7,17 @@
         <div style="background:#fff;padding:20px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin-bottom:25px">
             <h3 style="font-size:22px;color:#333;margin-bottom:15px">
                 Similar Products in {{ category_name }}
+                {% if min_price or max_price %}
+                    <span style="font-size:16px;color:#666;font-weight:normal">
+                        {% if min_price and max_price %}
+                            (Price Range: ₹{{ min_price }} - ₹{{ max_price }})
+                        {% elif min_price %}
+                            (Min Price: ₹{{ min_price }})
+                        {% elif max_price %}
+                            (Max Price: ₹{{ max_price }})
+                        {% endif %}
+                    </span>
+                {% endif %}
             </h3>
             
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:25px">
@@ -58,7 +69,7 @@
                                     <i class="fas fa-shopping-cart"></i> Add to Cart
                                 </button>
                             </form>
-                            <!-- New Purchase Probability Button -->
+                            <!-- Purchase Probability Button -->
                             <div style="display:flex;gap:10px;flex-direction:column">
                                 <a href="{% url 'purchase_probability' product.id %}" 
                                    class="btn btn-sm btn-warning" 
@@ -78,87 +89,81 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
-{% comment %} {% extends 'base.html' %}
-{% load static %}
-
-{% block content %}
-<div style="padding-top:90px;background-color:#f8f9fa">
-    <div style="padding:20px;max-width:1200px;margin:0 auto">
-        <div style="background:#fff;padding:20px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin-bottom:25px">
-            <h3 style="font-size:22px;color:#333;margin-bottom:15px">
-                Similar Products in {{ category_name }}
+        
+        <!-- Add this debugging section right before the Product Summary Section -->
+        {% if debug %}
+        <div style="background:#fff3cd;padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid #ffeeba">
+            <h4>Debug Information:</h4>
+            <ul>
+                <li>Number of products: {{ similar_products|length }}</li>
+                <li>show_summary flag: {{ show_summary }}</li>
+                <li>product_summary exists: {{ product_summary|yesno:"Yes,No" }}</li>
+                {% if product_summary %}
+                <li>Best value name: {{ product_summary.best_value.name|default:"Not set" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Product Summary Section -->
+        {% if show_summary %}
+        <div style="background:#fff;padding:25px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin-bottom:25px">
+            <h3 style="font-size:22px;color:#333;margin-bottom:20px;text-align:center">
+                AI-Powered Product Summary
             </h3>
             
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:25px">
-                {% for product in similar_products %}
-                <div style="background:#fff;border-radius:12px;box-shadow:0 3px 15px rgba(0,0,0,0.1);transition:all 0.3s ease;overflow:hidden;height:100%;display:flex;flex-direction:column"
-                     onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 5px 20px rgba(0,0,0,0.15)'"
-                     onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 3px 15px rgba(0,0,0,0.1)'">
-                    
-                    {% if product.image %}
-                    <div style="height:300px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:#f8f9fa">
-                        <img src="{{ product.image.url }}" 
-                             alt="{{ product.name }}" 
-                             style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;transition:transform 0.3s ease"
-                             onmouseover="this.style.transform='scale(1.05)'"
-                             onmouseout="this.style.transform='scale(1)'">
-                    </div>
-                    {% else %}
-                    <div style="height:300px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:#f8f9fa">
-                        <img src="{% static 'images/no-image.png' %}" 
-                             alt="No image available" 
-                             style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain">
-                    </div>
-                    {% endif %}
-                    
-                    <div style="padding:15px;flex:1;display:flex;flex-direction:column;justify-content:space-between">
-                        <h6 style="font-size:16px;margin-bottom:10px;color:#2c3e50;min-height:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">
-                            {{ product.name }}
-                        </h6>
-                        
-                        <div style="margin-bottom:15px">
-                            <span style="color:#27ae60;font-weight:600;font-size:18px">₹{{ product.price }}</span>
-                        </div>
-                        
-                        <div style="display:flex;gap:10px">
-                            <a href="{% url 'product_detail' product.id %}" 
-                               class="btn btn-sm btn-primary" 
-                               style="flex:1;padding:8px 15px;font-size:14px;text-decoration:none;text-align:center;border-radius:5px;background:#3498db;color:#fff;transition:all 0.3s ease"
-                               onmouseover="this.style.background='#2980b9'"
-                               onmouseout="this.style.background='#3498db'">
-                                <i class="fas fa-info-circle"></i> View Details
-                            </a>
-                            <form action="{% url 'add_to_cart' product.id %}" method="POST" style="flex:1">
-                                {% csrf_token %}
-                                <button type="submit" 
-                                        class="btn btn-sm btn-success" 
-                                        style="width:100%;padding:8px 15px;font-size:14px;background:#2ecc71;color:#fff;border:none;border-radius:5px;cursor:pointer;transition:all 0.3s ease"
-                                        onmouseover="this.style.background='#27ae60'"
-                                        onmouseout="this.style.background='#2ecc71'">
-                                    <i class="fas fa-shopping-cart"></i> Add to Cart
-                                </button>
-                            </form>
-                               <!-- New Purchase Probability Button -->
-                            {% comment %} <a href="{% url 'purchase_probability' product.id %}" 
-                               class="btn btn-sm btn-warning" 
-                               style="flex:1;padding:8px 15px;font-size:14px;text-decoration:none;text-align:center;border-radius:5px;background:#f39c12;color:#fff;transition:all 0.3s ease"
-                               onmouseover="this.style.background='#e67e22'"
-                               onmouseout="this.style.background='#f39c12'">
-                                <i class="fas fa-chart-line"></i> Purchase Probability
-                            </a> {% endcomment %}
-                        {% comment %} </div>
-                    </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:20px">
+                <!-- Best Value Pick -->
+                <div style="background:linear-gradient(135deg, #e8f5e9, #c8e6c9);padding:20px;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,0.08)">
+                    <h4 style="color:#2e7d32;margin-bottom:15px;display:flex;align-items:center">
+                        <i class="fas fa-award" style="margin-right:10px"></i> Best Value Pick
+                    </h4>
+                    <h5 style="font-size:18px;margin-bottom:10px">{{ product_summary.best_value.name }}</h5>
+                    <p style="color:#37474f;font-size:14px">{{ product_summary.best_value.reason }}</p>
                 </div>
-                {% empty %}
-                <div style="text-align:center;padding:30px;grid-column:1/-1">
-                    <p style="color:#7f8c8d">No products found in {{ category_name }} category.</p>
+                
+                <!-- Premium Pick -->
+                <div style="background:linear-gradient(135deg, #e3f2fd, #bbdefb);padding:20px;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,0.08)">
+                    <h4 style="color:#1565c0;margin-bottom:15px;display:flex;align-items:center">
+                        <i class="fas fa-crown" style="margin-right:10px"></i> Premium Pick
+                    </h4>
+                    <h5 style="font-size:18px;margin-bottom:10px">{{ product_summary.premium_pick.name }}</h5>
+                    <p style="color:#37474f;font-size:14px">{{ product_summary.premium_pick.reason }}</p>
                 </div>
-                {% endfor %}
+                
+                <!-- Budget Pick -->
+                <div style="background:linear-gradient(135deg, #fff3e0, #ffe0b2);padding:20px;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,0.08)">
+                    <h4 style="color:#e65100;margin-bottom:15px;display:flex;align-items:center">
+                        <i class="fas fa-piggy-bank" style="margin-right:10px"></i> Budget Pick
+                    </h4>
+                    <h5 style="font-size:18px;margin-bottom:10px">{{ product_summary.budget_pick.name }}</h5>
+                    <p style="color:#37474f;font-size:14px">{{ product_summary.budget_pick.reason }}</p>
+                </div>
+            </div>
+            
+            <!-- Comparison -->
+            <div style="margin-top:25px;background:#f5f5f5;padding:20px;border-radius:12px;border-left:4px solid #3f51b5">
+                <h4 style="color:#3f51b5;margin-bottom:15px;display:flex;align-items:center">
+                    <i class="fas fa-balance-scale" style="margin-right:10px"></i> Quick Comparison
+                </h4>
+                <p style="color:#37474f;font-size:16px;line-height:1.6">{{ product_summary.comparison }}</p>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
-{% endblock %}  {% endcomment %} 
+
+<!-- Add this at the bottom of the template -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded');
+    console.log('Number of products:', {{ similar_products|length }});
+    console.log('Show summary flag:', {{ show_summary|yesno:"true,false" }});
+    console.log('Product summary exists:', {{ product_summary|yesno:"true,false" }});
+    
+    // Check if the summary section is in the DOM
+    const summarySection = document.querySelector('.product-summary-section');
+    console.log('Summary section in DOM:', summarySection !== null);
+});
+</script>
+{% endblock %} 

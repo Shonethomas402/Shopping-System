@@ -19,6 +19,28 @@
                             </span>
                         </p>
                         <p><strong>Total Amount:</strong> ₹{{ order.total_price }}</p>
+                        
+                        <!-- Delivery Boy Information -->
+                        {% if order.delivery_boy %}
+                        <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #007bff;">
+                            <h6 style="font-weight: 700; color: #2c3e50; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">📦 Delivery Boy Details</h6>
+                            <div style="display: grid; gap: 12px;">
+                                <p style="margin: 0; display: flex; align-items: center;"><span style="font-weight: 600; min-width: 80px; color: #6c757d;">Name:</span> <span style="color: #2c3e50;">{{ order.delivery_boy.name }}</span></p>
+                                <p style="margin: 0; display: flex; align-items: center;"><span style="font-weight: 600; min-width: 80px; color: #6c757d;">Email:</span> <span style="color: #2c3e50;">{{ order.delivery_boy.email }}</span></p>
+                                <p style="margin: 0; display: flex; align-items: center;">
+                                    <span style="font-weight: 600; min-width: 80px; color: #6c757d;">Status:</span>
+                                    <span class="badge" style="background: {% if order.delivery_status == 'delivered' %}#28a745{% elif order.delivery_status == 'accepted' %}#007bff{% elif order.delivery_status == 'in_transit' %}#ffc107{% else %}#6c757d{% endif %}; color: {% if order.delivery_status == 'in_transit' %}#000{% else %}#fff{% endif %}; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500;">
+                                        {{ order.delivery_status|default:"Pending"|title }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #6c757d;">
+                            <h6 style="font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Delivery Assignment</h6>
+                            <p style="margin: 0; color: #6c757d;"><i class="fas fa-info-circle"></i> Delivery boy will be assigned soon.</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="col-md-6">

@@ -2,7 +2,8 @@ import google.generativeai as genai
 from django.conf import settings
 
 # Configure Gemini API
-genai.configure(api_key='AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+# genai.configure(api_key='AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+genai.configure(api_key='AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU')
 
 class GeminiRecommender:
     def __init__(self):

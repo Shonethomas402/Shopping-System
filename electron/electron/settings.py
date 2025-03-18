@@ -141,55 +141,55 @@ RAZORPAY_API_SECRET = 'WiIqhyRWdQdCfOiuaK7F4VVM'
 #Database
 #https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'electro',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
-         'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': 'SET character_set_connection=utf8mb4;'
-                          'SET collation_connection=utf8mb4_unicode_ci;'
-                          'SET NAMES utf8mb4;'
-        }
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'electro_dinnerour',
-#         'USER': 'electro_dinnerour',
-#         'PASSWORD': '53fa7b52f0d207d594c69cf296f0789f7d2846ff',
-#         'HOST': 'gjc-v.h.filess.io',
-#         'PORT': '3307',
-#         'OPTIONS':{
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         },
-#    }
+#         'NAME': 'electro',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#          'OPTIONS': {
+#             'charset': 'utf8mb4',
+#             'init_command': 'SET character_set_connection=utf8mb4;'
+#                           'SET collation_connection=utf8mb4_unicode_ci;'
+#                           'SET NAMES utf8mb4;'
+#         }
+#     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'electro_increasein',
+        'USER': 'electro_increasein',
+        'PASSWORD': '98203d3a6236f345ef12ab52cc2212b9da73dc71',
+        'HOST': 'nsihl.h.filess.io',
+        'PORT': '61002',
+        'OPTIONS':{
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+   }
+}
 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# AUTH_PASSWORD_VALIDATORS = [
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+#     },
+# ]
 
 
 # Internationalization
@@ -222,9 +222,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 # Gemini AI Configuration
-GEMINI_API_KEY = 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc'  # Replace with your actual API key
+# GEMINI_API_KEY = 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc' 
+  # Replace with your actual API key
 
-
+GEMINI_API_KEY = 'AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU'
 
 
 

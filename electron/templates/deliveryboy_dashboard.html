@@ -6,7 +6,11 @@
     <div class="row mb-4">
         <div class="col">
             <h2>Welcome, {{ deliveryboy_name }}</h2>
-            <p>You have {{ orders_count }} out of {{ max_orders }} deliveries assigned today</p>
+            {% if orders_count is not None and max_orders is not None %}
+                <p>You have {{ orders_count }} out of {{ max_orders }} deliveries assigned today</p>
+            {% else %}
+                <p>You have {{ active_count }} active deliveries</p>
+            {% endif %}
         </div>
     </div>
 
@@ -114,4 +118,4 @@
         background-color: #6c757d;
     }
 </style>
-{% endblock %} 
+{% endblock %}  

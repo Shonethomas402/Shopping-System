@@ -37,7 +37,7 @@ urlpatterns = [
     #path('category_management/', views.category_management, name='category_management'),
     path('product_management/', views.product_management, name='product_management'),
     path('order_management/', views.order_management, name='order_management'),
-    path('inventory_management/', views.inventory_management, name='inventory_management'),
+    # path('inventory_management/', views.inventory_management, name='inventory_management'),
     path('discounts_coupons/', views.discounts_coupons, name='discounts_coupons'), 
 
 
@@ -123,7 +123,7 @@ urlpatterns = [
     path('product/<int:product_id>/', views.product_detail, name='product_detail'),
     path('submit_rating/', views.submit_rating, name='submit_rating'),
     #path('rate-product/', views.rate_product, name='rate_product'),
-    path('rate-product/<int:product_id>/', views.rate_product, name='rate_product'),
+    # path('rate-product/<int:product_id>/', views.rate_product, name='rate_product'),
 
     path('change-password/', views.change_password, name='change_password'),
     # path('profilee/', views.profilee_view, name='profilee'),
@@ -179,7 +179,7 @@ urlpatterns = [
     # path('deliveryboy/logout/', views.deliveryboy_logout, name='logout'),
     path('product/<int:id>/', views.product_detail, name='product_detail'),
     path('recommendations/', views.product_recommendations, name='product_recommendations'),
-    path('similar-products/<str:category_name>/', views.get_similar_products, name='similar_products'),
+    path('similar-products/<str:category_name>/', views.similar_products_view, name='similar_products'),
     path('purchase_probability/<int:product_id>/', purchase_probability_view, name='purchase_probability'),
     #path('tech-dashboard/', views.tech_dashboard, name='tech_dashboard'),
     path('order/<int:order_id>/feedback/', views.submit_order_feedback, name='submit_order_feedback'),
@@ -188,6 +188,15 @@ urlpatterns = [
     path('order/<int:order_id>/feedback/', views.submit_order_feedback, name='submit_order_feedback'),
     path('submit-order-feedback/<int:order_id>/', views.submit_order_feedback, name='submit_order_feedback'),
     path('profile_reviewpage/', views.profile_reviewpage, name='profile_reviewpage'),
+
+    path('inventory/', views.inventory_management, name='inventory_management'),
+    path('product/<int:product_id>/feedback/', views.add_feedback, name='add_feedback'),
+    path('product/<int:product_id>/feedback/', views.submit_feedback, name='submit_feedback'),
+    path('product/<int:product_id>/sentiment/', views.product_sentiment_analysis, name='product_sentiment'),
+    path('product/<int:product_id>/feedback/', views.submit_feedback, name='submit_feedback'),
+    path('update-stock/<int:product_id>/', views.update_stock, name='update_stock'),
+    
+    
 ]
     
 

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="sentiment-analysis">
+    <h2>Sentiment Analysis for {{ product.name }}</h2>
+    
+    <!-- Sentiment Statistics -->
+    <div class="sentiment-stats">
+        <div class="stat-box positive">
+            <h3>Positive</h3>
+            <p>{{ sentiment_stats.positive }}</p>
+        </div>
+        <div class="stat-box neutral">
+            <h3>Neutral</h3>
+            <p>{{ sentiment_stats.neutral }}</p>
+        </div>
+        <div class="stat-box negative">
+            <h3>Negative</h3>
+            <p>{{ sentiment_stats.negative }}</p>
+        </div>
+        <div class="stat-box average">
+            <h3>Average Sentiment</h3>
+            <p>{{ sentiment_stats.average_score|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <!-- Feedback List -->
+    <div class="feedback-list">
+        {% for feedback in feedbacks %}
+        <div class="feedback-item {{ feedback.sentiment_label }}">
+            <div class="feedback-header">
+                <span class="user">{{ feedback.user.user.username }}</span>
+                <span class="rating">Rating: {{ feedback.rating }}/5</span>
+                <span class="sentiment">Sentiment: {{ feedback.sentiment_label|title }}</span>
+            </div>
+            <p class="feedback-text">{{ feedback.feedback }}</p>
+            <span class="timestamp">{{ feedback.created_at|date:"F d, Y" }}</span>
+        </div>
+        {% empty %}
+        <p>No feedback available yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+.sentiment-analysis {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.sentiment-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.positive { background-color: #d4edda; }
+.neutral { background-color: #fff3cd; }
+.negative { background-color: #f8d7da; }
+.average { background-color: #cce5ff; }
+
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.feedback-item {
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}

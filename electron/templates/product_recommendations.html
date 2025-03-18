@@ -47,22 +47,40 @@
                                style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd">
                     </div>
 
-                    <!-- Price Range -->
+                    <!-- Price Range with validation -->
                     <div>
                         <label style="display:block;margin-bottom:8px;color:#555">Price Range (₹)</label>
-                        <input type="number" name="min_price" placeholder="Min Price" value="{{ min_price }}"
-                               style="width:48%;padding:8px;border-radius:8px;border:1px solid #ddd;margin-right:4%">
-                        <input type="number" name="max_price" placeholder="Max Price" value="{{ max_price }}"
-                               style="width:48%;padding:8px;border-radius:8px;border:1px solid #ddd">
+                        <div style="position:relative">
+                            <input type="number" 
+                                   id="minPrice"
+                                   name="min_price" 
+                                   placeholder="Min Price (₹2,000 minimum)" 
+                                   value="{{ min_price }}"
+                                   min="2000"
+                                   max="1000000"
+                                   style="width:48%;padding:8px;border-radius:8px;border:1px solid #ddd;margin-right:4%"
+                                   oninput="validatePriceRange()">
+                            <input type="number" 
+                                   id="maxPrice"
+                                   name="max_price" 
+                                   placeholder="Max Price (₹10,00,000 maximum)" 
+                                   value="{{ max_price }}"
+                                   min="2000"
+                                   max="1000000"
+                                   style="width:48%;padding:8px;border-radius:8px;border:1px solid #ddd"
+                                   oninput="validatePriceRange()">
+                            <div id="priceError" 
+                                 style="color:#e74c3c;font-size:12px;margin-top:5px;position:absolute;bottom:-20px;left:0;width:100%;transition:all 0.3s ease"></div>
+                        </div>
                     </div>
 
-                    <!-- Specifications -->
+                     <!-- Specifications -->
                     <div>
                         <label style="display:block;margin-bottom:8px;color:#555">Specifications (Optional)</label>
                         <textarea name="specifications" placeholder="Enter specifications (e.g., RAM, Storage, Processor)"
                                   style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;resize:vertical">{{ specifications }}</textarea>
                     </div>
-                </div>
+                </div> 
 
                 <button type="submit" 
                         style="background:#3498db;color:#fff;padding:10px 25px;border:none;border-radius:25px;font-weight:500;transition:all 0.3s ease;cursor:pointer"
@@ -89,21 +107,21 @@
                         
                         <!-- Updated buttons with functionality -->
                         <div style="display:flex;gap:10px;margin-top:15px">
-                            <a href="{% url 'similar_products' selected_category %}" 
+                            <a href="{% url 'similar_products' selected_category %}?min_price={{ min_price }}&max_price={{ max_price }}" 
                                class="btn btn-primary" 
                                style="flex:1;padding:8px 15px;background:#3498db;color:#fff;text-decoration:none;text-align:center;border-radius:5px;transition:all 0.3s ease"
                                onmouseover="this.style.background='#2980b9'"
                                onmouseout="this.style.background='#3498db'">
                                 View Similar Products
                             </a>
-                            <a href="https://www.flipkart.com/search?q={{ rec.name|urlencode }}" 
+                            {% comment %} <a href="https://www.flipkart.com/search?q={{ rec.name|urlencode }}" 
                                target="_blank"
                                class="btn btn-success" 
                                style="flex:1;padding:8px 15px;background:#2ecc71;color:#fff;border:none;border-radius:5px;cursor:pointer;transition:all 0.3s ease;text-decoration:none;text-align:center"
                                onmouseover="this.style.background='#27ae60'"
                                onmouseout="this.style.background='#2ecc71'">
                                 Find Online
-                            </a>
+                            </a> {% endcomment %}
                         </div>
 
                         <!-- Similar Products Section (Initially Hidden) -->
@@ -147,6 +165,14 @@
             </div>
             {% endif %}
         {% endif %}
+
+        <!-- Add this somewhere visible for testing -->
+        <div style="margin-top:20px;text-align:center;">
+            <a href="{% url 'similar_products' 'Smart TVs' %}?min_price=5000&max_price=50000" 
+               class="btn btn-info">
+                Test Similar Products (Smart TVs)
+            </a>
+        </div>
     </div>
 </div>
 
@@ -163,5 +189,89 @@ function toggleSimilarProducts(productName) {
         }
     }
 }
+
+function validatePriceRange() {
+    const minPrice = document.getElementById('minPrice');
+    const maxPrice = document.getElementById('maxPrice');
+    const errorDiv = document.getElementById('priceError');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    // Convert values to numbers
+    const minVal = Number(minPrice.value);
+    const maxVal = Number(maxPrice.value);
+    
+    // Reset styles
+    minPrice.style.border = '1px solid #ddd';
+    maxPrice.style.border = '1px solid #ddd';
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    submitBtn.disabled = false;
+    
+    // Validation checks with immediate feedback
+    if (minVal !== 0 && minVal < 2000) {
+        showError('Minimum price should be at least ₹2,000');
+        minPrice.style.border = '2px solid #e74c3c';
+        return false;
+    }
+    
+    if (maxVal > 1000000) {
+        showError('Maximum price should not exceed ₹10,00,000');
+        maxPrice.style.border = '2px solid #e74c3c';
+        return false;
+    }
+    
+    if (minVal > maxVal && maxVal !== 0) {
+        showError('Minimum price cannot be greater than maximum price');
+        minPrice.style.border = '2px solid #e74c3c';
+        maxPrice.style.border = '2px solid #e74c3c';
+        return false;
+    }
+    
+    if (minVal !== 0 && maxVal !== 0) {
+        if (maxVal - minVal < 5000) {
+            showError('Price range should be at least ₹5,000');
+            minPrice.style.border = '2px solid #e74c3c';
+            maxPrice.style.border = '2px solid #e74c3c';
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('priceError');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.querySelector('button[type="submit"]').disabled = true;
+}
+
+// Add event listeners for real-time validation
+document.getElementById('minPrice').addEventListener('input', function(e) {
+    // Format number with commas
+    let value = this.value.replace(/,/g, '');
+    if (value) {
+        value = parseInt(value).toLocaleString('en-IN');
+        this.value = value.replace(/,/g, '');
+    }
+    validatePriceRange();
+});
+
+document.getElementById('maxPrice').addEventListener('input', function(e) {
+    // Format number with commas
+    let value = this.value.replace(/,/g, '');
+    if (value) {
+        value = parseInt(value).toLocaleString('en-IN');
+        this.value = value.replace(/,/g, '');
+    }
+    validatePriceRange();
+});
+
+// Validate form before submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!validatePriceRange()) {
+        e.preventDefault();
+    }
+});
 </script>
   {% endblock %}

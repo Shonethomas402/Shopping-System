@@ -39,7 +39,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
-from .models import Order, Cart, CartItems, OrderItem
+from .models import Order, Cart, CartItems, OrderItem 
 import razorpay
 
 # Initialize Razorpay client
@@ -384,8 +384,7 @@ def generate_orders_report_pdf(request):
         messages.error(request, f'Error generating PDF: {str(e)}')
         return redirect('order_management')
 
-def inventory_management(request):
-    return render(request, 'inventory_management.html')
+
 
 def discounts_coupons(request):
     
@@ -585,12 +584,6 @@ def switch_account(request):
 from django.shortcuts import render, get_object_or_404
 from .models import Product
 
-def product_detail(request, id):
-    product = get_object_or_404(Product, id=id)
-    
-  
-    return render(request, 'product_detail.html', {'product': product})
-
 # views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import DeliveryAddress
@@ -608,7 +601,8 @@ def delivery_address_list(request):
             
         # Store the selected address ID in session
         request.session['selected_address'] = selected_address_id
-        return redirect('confirm_order')  # Redirect to confirm order page
+        # Now redirect to confirm_order
+        return redirect('confirm_order')
         
     return render(request, 'delivery_address_list.html', {'addresses': addresses})
 
@@ -1239,40 +1233,6 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import Product,Rating
 
-@login_required
-def product_detail(request, id):  # Add 'id' parameter here
-    product = get_object_or_404(Product, id=id)
-    user_rating = None
-    if request.user.is_authenticated:
-        user_rating = Rating.objects.filter(user=request.user, product=product).first()
-    
-    context = {
-        'product': product,
-        'user_rating': user_rating
-    }
-    return render(request, 'product_detail.html', context)
-@login_required
-def rate_product(request, product_id):
-    if request.method == 'POST':
-        product = get_object_or_404(Product, id=product_id)
-        rating_value = request.POST.get('rating')
-        
-        if rating_value:
-            rating, created = Rating.objects.get_or_create(
-                user=request.user,
-                product=product,
-                defaults={'rating': rating_value}
-            )
-            
-            if not created:
-                rating.rating = rating_value
-                rating.save()
-            
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'status': 'success'})
-            
-        return redirect('product_detail', id=product_id)
-    return redirect('product_detail', id=product_id)
 
 @login_required
 def submit_rating(request):
@@ -1557,6 +1517,38 @@ def update_repair_status(request, request_id, status):
 #             return redirect('repair_master_dashboard')
         
 #         return render(request, 'add_technician.html', {'repair_master': repair_master})
+    
+#     except RepairMaster.DoesNotExist:
+#         messages.error(request, 'Invalid session')
+#         return redirect('repair_master_login')
+#     except Exception as e:
+#         messages.error(request, f'Error: {str(e)}')
+#         return redirect('repair_master_dashboard')
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import RepairRequest
+
+def repair_request_list(request):
+    if request.method == 'POST':
+        if 'delete_request' in request.POST:
+            request_id = request.POST.get('request_id')
+            try:
+                repair_request = RepairRequest.objects.get(id=request_id)
+                repair_request.delete()
+                messages.success(request, 'Repair request deleted successfully.')
+            except RepairRequest.DoesNotExist:
+                messages.error(request, 'Repair request not found.')
+            return redirect('repair_request_list')
+    
+    repair_requests = RepairRequest.objects.all().order_by('-created_at')
+    return render(request, 'repair_requests_list.html', {'repair_requests': repair_requests})
+
+# views.py
+from django.shortcuts import render, redirect
+from django.contrib import messages
+  # Assuming you have a Technician model
+
     
 #     except RepairMaster.DoesNotExist:
 #         messages.error(request, 'Invalid session')
@@ -1898,66 +1890,67 @@ def deliveryboy_dashboard(request):
     deliveryboy_id = request.session.get('deliveryboy_id')
     deliveryboy_name = request.session.get('deliveryboy_name')
     
-    # Get today's date
+    # Get today's date - uncomment this!
     today = timezone.now().date()
     
-    # Get pending deliveries (in_transit)
-    pending_deliveries = Order.objects.filter(
-        delivery_boy_id=deliveryboy_id,
-        delivery_status='in_transit',
-        created_at__date=today
-    ).order_by('created_at')
-
-    # Get accepted deliveries
-    accepted_deliveries = Order.objects.filter(
-        delivery_boy_id=deliveryboy_id,
-        delivery_status='accepted',
-        created_at__date=today
-    ).order_by('created_at')
-
-    # Get completed deliveries
-    completed_deliveries = Order.objects.filter(
-        delivery_boy_id=deliveryboy_id,
-        delivery_status='delivered',
-        created_at__date=today
-    ).order_by('created_at')
-
-    # Check if this delivery boy has less than 3 orders for today
-    total_orders = pending_deliveries.count() + accepted_deliveries.count() + completed_deliveries.count()
-    
-    if total_orders < 3:
-        # Calculate how many more orders can be assigned
-        available_slots = 3 - total_orders
+    try:
+        # First get unassigned orders and assign them
+        if DeliveryBoy.objects.filter(id=deliveryboy_id).exists():
+            # Get unassigned orders that are completed and need delivery
+            unassigned_orders = Order.objects.filter(
+                status='Completed',
+                delivery_status__isnull=True,
+                delivery_boy__isnull=True
+            ).order_by('created_at')
+            
+            # Get current order count for this delivery boy
+            current_orders = Order.objects.filter(
+                delivery_boy_id=deliveryboy_id,
+                delivery_status__in=['in_transit', 'accepted'],
+                created_at__date=today
+            ).count()
+            
+            # Assign new orders if less than 3
+            if current_orders < 3:
+                available_slots = 3 - current_orders
+                for order in unassigned_orders[:available_slots]:
+                    order.delivery_boy_id = deliveryboy_id
+                    order.delivery_status = 'in_transit'
+                    order.save()
         
-        # Get unassigned orders
-        new_orders = Order.objects.filter(
-            status='Completed',
-            delivery_status__isnull=True,
-            created_at__date=today
-        ).order_by('created_at')[:available_slots]
-        
-        # Assign these orders to the delivery boy
-        for order in new_orders:
-            order.delivery_boy_id = deliveryboy_id
-            order.delivery_status = 'in_transit'
-            order.save()
-        
-        # Refresh pending deliveries
+        # Now get all deliveries for display
         pending_deliveries = Order.objects.filter(
             delivery_boy_id=deliveryboy_id,
-            delivery_status='in_transit',
-            created_at__date=today
-        ).order_by('created_at')
+            delivery_status='in_transit'
+        ).order_by('-created_at')
 
-    context = {
-        'deliveryboy_name': deliveryboy_name,
-        'pending_deliveries': pending_deliveries,
-        'accepted_deliveries': accepted_deliveries,
-        'completed_deliveries': completed_deliveries,
-        'orders_count': total_orders,
-        'max_orders': 3,
-    }
-    return render(request, 'deliveryboy_dashboard.html', context)
+        accepted_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='accepted'
+        ).order_by('-created_at')
+
+        completed_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='delivered'
+        ).order_by('-created_at')
+
+        total_orders = pending_deliveries.count() + accepted_deliveries.count() + completed_deliveries.count()
+        
+        context = {
+            'deliveryboy_name': deliveryboy_name,
+            'pending_deliveries': pending_deliveries,
+            'accepted_deliveries': accepted_deliveries,
+            'completed_deliveries': completed_deliveries,
+            'orders_count': total_orders,
+            'max_orders': 3,
+            'active_count': pending_deliveries.count() + accepted_deliveries.count()
+        }
+        
+        return render(request, 'deliveryboy_dashboard.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('tech_login')
 
 @login_required
 def accept_delivery(request, order_id):
@@ -2388,9 +2381,15 @@ def order_detail(request, order_id):
         order.save()
         print(f"Generated new OTP: {order.delivery_otp}")  # Debug print
     
+    # Get delivery boy details if assigned
+    delivery_boy = None
+    if order.delivery_boy:
+        delivery_boy = order.delivery_boy
+    
     context = {
         'order': order,
         'order_items': order_items,
+        'delivery_boy': delivery_boy
     }
     
     return render(request, 'order_detail.html', context)
@@ -2402,40 +2401,6 @@ from .recommendation_model import ProductRecommender
 # Create a global recommender instance
 recommender = ProductRecommender()
 
-def initialize_recommender():
-    try:
-        # Get all products with necessary fields
-        products = Product.objects.all().values(
-            'id', 'name', 'description'
-        )
-        # Initialize the recommender
-        recommender.prepare_data(products)
-    except Exception as e:
-        print(f"Error initializing recommender: {e}")
-
-def product_detail(request, id):  # Changed from product_id to id
-    try:
-        product = Product.objects.get(id=id)
-        
-        # Get more recommendations initially (e.g., 10 instead of 4)
-        recommended_ids = recommender.get_recommendations(id, num_recommendations=10)
-        
-        # Filter by category
-        recommended_products = Product.objects.filter(
-            id__in=recommended_ids,
-            category=product.category
-        )[:4]  # Limit to 4 results
-        
-        context = {
-            'product': product,
-            'recommended_products': recommended_products,
-        }
-        return render(request, 'product_detail.html', context)
-    except Product.DoesNotExist:
-        return render(request, '404.html')
-    except Exception as e:
-        print(f"Error in product detail view: {e}")
-        return render(request, 'error.html')
 
 from django.shortcuts import render
 from .utils.image_processor import ImageProcessor
@@ -2780,7 +2745,8 @@ import google.generativeai as genai
 from django.conf import settings
 
 # Configure Gemini with the correct API key
-GEMINI_API_KEY = "AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc"  # Replace with your valid API key
+# GEMINI_API_KEY = "AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc"  # Replace with your valid API key
+GEMINI_API_KEY = 'AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU'
 genai.configure(api_key=GEMINI_API_KEY)
 
 class GeminiRecommender:
@@ -3101,16 +3067,267 @@ def techdashboard(request):
     if not technician_id:
         messages.error(request, 'Please login first.')
         return redirect('tech_login')
+        technician = Technician(name=name, pin_number=pin_number, email=email)
+        try:
+            technician.save()
+            messages.success(request, f'Technician {name} added successfully!')
+            return redirect('technician_management')  # Redirect to technician management page
+        except Exception as e:
+            messages.error(request, f'Error adding technician: {str(e)}')
+            return redirect('add_technician')  # Redirect back to add form if there's an error
+
+    return render(request, 'add_technician.html')
+
+
+# def tech_login(request):
+#     if request.method == 'POST':
+#         name = request.POST.get('name').strip()
+#         email = request.POST.get('email').strip().lower()
+#         pin = request.POST.get('pin').strip()
+#         role = request.POST.get('role')
+
+#         try:
+#             # Print form data for debugging
+#             print(f"Form data - Name: '{name}', Email: '{email}', PIN: '{pin}'")
+            
+#             # First try to find any similar email addresses to help with typos
+#             similar_techs = Technician.objects.filter(email__icontains=email.split('@')[0])
+            
+#             if similar_techs.exists():
+#                 # If we found similar emails, check if any match exactly
+#                 tech = similar_techs.filter(email__iexact=email).first()
+#                 if tech:
+#                     if tech.name.lower() == name.lower() and tech.pin_number == pin:
+#                         # Successful login
+#                         request.session['technician_id'] = tech.id
+#                         request.session['technician_name'] = tech.name
+#                         request.session['technician_role'] = role
+#                         messages.success(request, 'Login successful!')
+#                         return redirect('tech_dashboard')
+#                     else:
+#                         if tech.name.lower() != name.lower():
+#                             messages.error(request, 'Name does not match our records.')
+#                         else:
+#                             messages.error(request, 'Invalid PIN number.')
+#                 else:
+#                     # Found similar emails but none match exactly
+#                     suggestions = [t.email for t in similar_techs]
+#                     messages.error(request, f'Did you mean one of these emails? {", ".join(suggestions)}')
+#             else:
+#                 messages.error(request, 'No technician found with this email address.')
+            
+#             # Print all technicians for debugging
+#             print("\nAll technicians in database:")
+#             for tech in Technician.objects.all():
+#                 print(f"DB Tech - Name: '{tech.name}', Email: '{tech.email}', PIN: '{tech.pin_number}'")
+            
+#         except Exception as e:
+#             print(f"Login error: {str(e)}")
+#             messages.error(request, f'An error occurred: {str(e)}')
+
+#     return render(request, 'tech_login.html')
+
+
+
+# @login_required
+# def tech_dashboard(request):
+#     if request.method == 'POST':
+#         request_id = request.POST.get('request_id')
+#         action = request.POST.get('action')
+        
+#         try:
+#             repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+#             if action == 'accept':
+#                 repair_request.status = 'approved'
+#                 messages.success(request, 'Repair request accepted successfully.')
+            
+#             elif action == 'reject':
+#                 repair_request.status = 'rejected'
+#                 messages.warning(request, 'Repair request rejected.')
+            
+#             elif action == 'complete':
+#                 repair_request.status = 'completed'
+#                 messages.success(request, 'Repair request marked as completed.')
+            
+#             repair_request.save()
+#             return redirect('tech_dashboard')
+            
+#         except Exception as e:
+#             messages.error(request, f'Error processing request: {str(e)}')
+    
+#     # Get lists of requests for display
+#     pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
+#     active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
+    
+#     context = {
+#         'pending_requests': pending_requests,
+#         'active_requests': active_requests,
+#         'technician': request.user,  # Add logged-in technician info
+#     }
+    
+#     return render(request, 'techdashboard.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Technician, DeliveryBoy, RepairRequest
+
+def tech_login(request):
+    if request.method == 'POST':
+        name = request.POST.get('name').strip()
+        email = request.POST.get('email').strip().lower()
+        pin = request.POST.get('pin').strip()
+        role = request.POST.get('role')
+
+        # Handle Delivery Boy Login
+        if role == 'deliveryboy':
+            try:
+                deliveryboy = DeliveryBoy.objects.get(email=email)
+                if deliveryboy.name.lower() == name.lower() and deliveryboy.pin_number == pin:
+                    request.session['deliveryboy_id'] = deliveryboy.id
+                    request.session['deliveryboy_name'] = deliveryboy.name
+                    request.session['role'] = 'deliveryboy'
+                    messages.success(request, 'Login successful!')
+                    return redirect('deliveryboy_dashboard')
+                else:
+                    if deliveryboy.name.lower() != name.lower():
+                        messages.error(request, 'Name does not match our records.')
+                    else:
+                        messages.error(request, 'Invalid PIN number.')
+            except DeliveryBoy.DoesNotExist:
+                messages.error(request, 'No delivery boy found with this email address.')
+
+        # Handle Technician Login
+        elif role == 'technician':
+            try:
+                similar_techs = Technician.objects.filter(email__icontains=email.split('@')[0])
+                
+                if similar_techs.exists():
+                    tech = similar_techs.filter(email__iexact=email).first()
+                    if tech:
+                        if tech.name.lower() == name.lower() and tech.pin_number == pin:
+                            request.session['technician_id'] = tech.id
+                            request.session['technician_name'] = tech.name
+                            request.session['technician_role'] = role
+                            messages.success(request, 'Login successful!')
+                            return redirect('techdashboard')
+                        else:
+                            if tech.name.lower() != name.lower():
+                                messages.error(request, 'Name does not match our records.')
+                            else:
+                                messages.error(request, 'Invalid PIN number.')
+                    else:
+                        suggestions = [t.email for t in similar_techs]
+                        messages.error(request, f'Did you mean one of these emails? {", ".join(suggestions)}')
+                else:
+                    messages.error(request, 'No technician found with this email address.')
+            
+            except Exception as e:
+                print(f"Login error: {str(e)}")
+                messages.error(request, f'An error occurred: {str(e)}')
+
+    return render(request, 'tech_login.html')
+
+# @login_required
+# def techdashboard(request):
+#     if request.method == 'POST':
+#         request_id = request.POST.get('request_id')
+#         action = request.POST.get('action')
+        
+#         try:
+#             repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+#             if action == 'accept':
+#                 repair_request.status = 'approved'
+#                 messages.success(request, 'Repair request accepted successfully.')
+#             elif action == 'reject':
+#                 repair_request.status = 'rejected'
+#                 messages.warning(request, 'Repair request rejected.')
+#             elif action == 'complete':
+#                 repair_request.status = 'completed'
+#                 messages.success(request, 'Repair request marked as completed.')
+            
+#             repair_request.save()
+#             return redirect('techdashboard')
+            
+#         except Exception as e:
+#             messages.error(request, f'Error processing request: {str(e)}')
+    
+#     pending_requests = RepairRequest.objects.filter(status='pending').order_by('-created_at')
+#     active_requests = RepairRequest.objects.filter(status='approved').order_by('-created_at')
+    
+#     context = {
+#         'pending_requests': pending_requests,
+#         'active_requests': active_requests,
+#         'technician': request.user,
+#     }
+    
+#     return render(request, 'techdashboard.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import RepairRequest, Technician
+# views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import RepairRequest, Technician
+
+def techdashboard(request):
+    # Check if technician is logged in using session
+    technician_id = request.session.get('technician_id')
+    if not technician_id:
+        messages.error(request, 'Please login first.')
+        return redirect('tech_login')
     
     try:
+        # Get the technician object
         technician = get_object_or_404(Technician, id=technician_id)
         
-        # ... existing POST handling code ...
+        if request.method == 'POST':
+            request_id = request.POST.get('request_id')
+            action = request.POST.get('action')
+            
+            try:
+                repair_request = get_object_or_404(RepairRequest, id=request_id)
+                
+                if action == 'accept':
+                    if repair_request.status == 'pending':
+                        repair_request.status = 'approved'
+                        repair_request.technician = technician
+                        messages.success(request, 'Repair request accepted successfully.')
+                    else:
+                        messages.error(request, 'This request has already been processed.')
+                
+                elif action == 'reject':
+                    if repair_request.status == 'pending':
+                        repair_request.status = 'rejected'
+                        repair_request.technician = technician
+                        messages.warning(request, 'Repair request rejected.')
+                    else:
+                        messages.error(request, 'This request has already been processed.')
+                
+                elif action == 'complete':
+                    if repair_request.status == 'approved' and repair_request.technician == technician:
+                        repair_request.status = 'completed'
+                        messages.success(request, 'Repair request marked as completed.')
+                    else:
+                        messages.error(request, 'Cannot complete this request.')
+                
+                repair_request.save()
+                
+            except RepairRequest.DoesNotExist:
+                messages.error(request, 'Repair request not found.')
+            except Exception as e:
+                messages.error(request, f'Error processing request: {str(e)}')
+            
+            return redirect('techdashboard')
         
         # Get requests for display
         pending_requests = RepairRequest.objects.filter(
             status='pending',
-            technician__isnull=True
+            technician__isnull=True  # Only show requests not assigned to any technician
         ).order_by('-created_at')
         
         active_requests = RepairRequest.objects.filter(
@@ -3118,16 +3335,9 @@ def techdashboard(request):
             technician=technician
         ).order_by('-created_at')
         
-        # Add completed requests query
-        completed_requests = RepairRequest.objects.filter(
-            status='completed',
-            technician=technician
-        ).order_by('-created_at')
-        
         context = {
             'pending_requests': pending_requests,
             'active_requests': active_requests,
-            'completed_requests': completed_requests,  # Add to context
             'technician': {
                 'name': request.session.get('technician_name'),
                 'id': technician_id,
@@ -3137,6 +3347,1500 @@ def techdashboard(request):
         
         return render(request, 'techdashboard.html', context)
         
+    except Technician.DoesNotExist:
+        messages.error(request, 'Technician account not found.')
+        request.session.flush()
+        return redirect('tech_login')
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
         return redirect('tech_login')
+
+# Optional: Add logout view
+def tech_logout(request):
+    # Clear session data
+    request.session.flush()
+    messages.success(request, 'Logged out successfully.')
+    return redirect('tech_login')
+
+def deliveryboy_dashboard(request):
+    if 'deliveryboy_id' not in request.session:
+        messages.error(request, 'Please login first!')
+        return redirect('tech_login')
+    
+    deliveryboy_id = request.session.get('deliveryboy_id')
+    deliveryboy_name = request.session.get('deliveryboy_name')
+    
+    # Get today's date - uncomment this!
+    today = timezone.now().date()
+    
+    try:
+        # First get unassigned orders and assign them
+        if DeliveryBoy.objects.filter(id=deliveryboy_id).exists():
+            # Get unassigned orders that are completed and need delivery
+            unassigned_orders = Order.objects.filter(
+                status='Completed',
+                delivery_status__isnull=True,
+                delivery_boy__isnull=True
+            ).order_by('created_at')
+            
+            # Get current order count for this delivery boy
+            current_orders = Order.objects.filter(
+                delivery_boy_id=deliveryboy_id,
+                delivery_status__in=['in_transit', 'accepted'],
+                created_at__date=today
+            ).count()
+            
+            # Assign new orders if less than 3
+            if current_orders < 3:
+                available_slots = 3 - current_orders
+                for order in unassigned_orders[:available_slots]:
+                    order.delivery_boy_id = deliveryboy_id
+                    order.delivery_status = 'in_transit'
+                    order.save()
+        
+        # Now get all deliveries for display
+        pending_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='in_transit'
+        ).order_by('-created_at')
+
+        accepted_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='accepted'
+        ).order_by('-created_at')
+
+        completed_deliveries = Order.objects.filter(
+            delivery_boy_id=deliveryboy_id,
+            delivery_status='delivered'
+        ).order_by('-created_at')
+
+        total_orders = pending_deliveries.count() + accepted_deliveries.count() + completed_deliveries.count()
+        
+        context = {
+            'deliveryboy_name': deliveryboy_name,
+            'pending_deliveries': pending_deliveries,
+            'accepted_deliveries': accepted_deliveries,
+            'completed_deliveries': completed_deliveries,
+            'orders_count': total_orders,
+            'max_orders': 3,
+            'active_count': pending_deliveries.count() + accepted_deliveries.count()
+        }
+        
+        return render(request, 'deliveryboy_dashboard.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('tech_login')
+
+@login_required
+def accept_delivery(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        # Generate OTP when delivery is accepted
+        if not order.delivery_otp:
+            import random
+            order.delivery_otp = str(random.randint(100000, 999999))
+        order.delivery_status = 'accepted'
+        order.save()
+        messages.success(request, 'Delivery accepted successfully!')
+        return redirect('deliveryboy_dashboard')
+
+@login_required
+def verify_delivery_otp(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        entered_otp = request.POST.get('otp')
+        
+        if entered_otp == order.delivery_otp:
+            from django.utils import timezone
+            order.otp_verified = True
+            order.delivery_time = timezone.now()  # Record delivery time
+            order.delivery_status = 'delivered'
+            order.save()
+            messages.success(request, 'Delivery completed successfully!')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+            
+    return redirect('deliveryboy_dashboard')
+
+def logout_user(request):
+    request.session.flush()
+    messages.success(request, 'Logged out successfully!')
+    return redirect('tech_login')
+
+def technician_management(request):
+    if request.method == 'POST':
+        if 'delete_technician' in request.POST:
+            technician_id = request.POST.get('technician_id')
+            try:
+                technician = Technician.objects.get(id=technician_id)
+                technician.delete()
+                messages.success(request, f'Technician {technician.name} deleted successfully.')
+            except Technician.DoesNotExist:
+                messages.error(request, 'Technician not found.')
+            return redirect('technician_management')
+    
+    technicians = Technician.objects.all().order_by('name')
+    return render(request, 'technician_management.html', {'technicians': technicians})
+
+ # Ensure you have this template# Ensure you have this template 
+
+def technician_login(request):
+       if request.method == 'POST':
+           # Logic to handle login
+           username = request.POST.get('username')
+           password = request.POST.get('password')
+           # Add your authentication logic here
+           if username and password:  # Replace with actual validation
+               # Assuming successful login, redirect to the dashboard
+               messages.success(request, 'Login successful!')
+               return redirect('tech_dashboard')  # Change to your actual dashboard URL name
+           else:
+               messages.error(request, 'Invalid credentials. Please try again.')
+               return render(request, 'technician_login.html')
+
+from django.shortcuts import render
+from .models import Warehouse 
+
+
+
+
+def warehouse_locations(request):
+    if request.method == 'POST':
+        # Get form data
+        name = request.POST.get('name')
+        address = request.POST.get('address')
+        contact_number = request.POST.get('contact')  # Note: form field name is 'contact'
+        capacity = request.POST.get('capacity')
+        description = request.POST.get('description')
+
+        try:
+            # Create new warehouse
+            warehouse = Warehouse.objects.create(
+                name=name,
+                address=address,
+                contact_number=contact_number,
+                capacity=capacity,
+                description=description
+            )
+            messages.success(request, 'Warehouse added successfully!')
+            return redirect('warehouse_locations')
+        except Exception as e:
+            messages.error(request, f'Error adding warehouse: {str(e)}')
+            
+    # GET request - display warehouses
+    warehouses = Warehouse.objects.all().order_by('-created_at')
+    return render(request, 'warehouse_locations.html', {'warehouses': warehouses})
+
+from django.shortcuts import render
+import pandas as pd
+import os
+import numpy as np
+
+def delivery_data(request):
+    # Load the dataset
+    csv_path = os.path.join(os.path.dirname(__file__), 'datasets', 'delivery_time_dataset.csv')
+    df = pd.read_csv(csv_path)
+
+    # Convert DataFrame to a list of dictionaries for easy rendering in the template
+    delivery_data = df.to_dict(orient='records')
+
+    return render(request, 'delivery_data.html', {'delivery_data': delivery_data})
+
+def predict_delivery_time(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    
+    # Construct the path to the delivery time dataset
+    dataset_path = os.path.join(os.path.dirname(__file__), 'datasets', 'delivery_time_dataset.csv')
+    
+    try:
+        # Load the delivery time dataset
+        df = pd.read_csv(dataset_path)
+        
+        # Get the delivery location from the order
+        delivery_place = order.address.place.strip()
+        delivery_place = ''.join([i for i in delivery_place if not i.isdigit()]).strip()
+        delivery_place = delivery_place.replace('(', '').replace(')', '').strip()
+        
+        # Get current time as order placement time
+        order_placement_time = order.created_at
+        
+        # Find similar deliveries in the dataset based on location
+        similar_deliveries = df[df['delivery_location'].str.contains(delivery_place, case=False, na=False)]
+        
+        if not similar_deliveries.empty:
+            # Calculate average delivery time for the location
+            avg_delivery_days = similar_deliveries['delivery_time'].mean()
+            
+            # Round to nearest whole number of days
+            delivery_days = round(avg_delivery_days)
+            
+            # Convert order placement time to datetime if it's not already
+            if isinstance(order_placement_time, str):
+                order_placement_time = datetime.strptime(order_placement_time, '%Y-%m-%d %H:%M:%S.%f')
+            
+            # Calculate predicted delivery datetime
+            predicted_datetime = order_placement_time + timedelta(days=delivery_days)
+            
+            # Ensure delivery time is between 9 AM and 5 PM
+            delivery_hour = random.randint(9, 16)  # 16 to allow for minutes
+            delivery_minute = random.choice([0, 15, 30, 45])
+            predicted_datetime = predicted_datetime.replace(hour=delivery_hour, minute=delivery_minute, second=0, microsecond=0)
+            
+            delivery_info = f"Expected delivery by {predicted_datetime.strftime('%d %b %Y %I:%M %p')}"
+            
+            # Log the prediction details
+            logger.info(f"Order {order_id} - Location: {delivery_place}")
+            logger.info(f"Average delivery days for location: {avg_delivery_days}")
+            logger.info(f"Predicted delivery time: {predicted_datetime}")
+            
+        else:
+            delivery_info = "Delivery estimate: 3-5 business days, delivery between 9:00 AM - 5:00 PM"
+            
+    except Exception as e:
+        logger.error(f"Error predicting delivery time: {str(e)}")
+        delivery_info = "Delivery estimate: 3-5 business days, delivery between 9:00 AM - 5:00 PM"
+
+    return render(request, 'predict_delivery_time.html', {
+        'order': order,
+        'predicted_time': delivery_info,
+        'order_time': order.created_at.strftime('%d %b %Y %I:%M %p')
+    })
+
+@login_required
+def order_pdf(request, order_id):
+    """Generate PDF for a specific order"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Create a file-like buffer to receive PDF data
+    buffer = io.BytesIO()
+    
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    # Draw things on the PDF
+    # Header
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, 750, f"Order Invoice #{order.id}")
+    
+    # Customer Info
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 720, f"Customer: {order.user.get_full_name() or order.user.username}")
+    p.drawString(50, 700, f"Date: {order.created_at.strftime('%d %B %Y')}")
+    p.drawString(50, 680, f"Status: {order.status}")
+    
+    # Order Items
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, 640, "Items:")
+    
+    y = 620
+    p.setFont("Helvetica", 10)
+    for item in order.items.all():
+        p.drawString(70, y, f"{item.product.name} x {item.quantity} - ₹{item.product_total()}")
+        y -= 20
+    
+    # Total
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y-20, f"Total Amount: ₹{order.total_price}")
+    
+    # Delivery Address
+    if order.address:
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y-60, "Delivery Address:")
+        p.setFont("Helvetica", 10)
+        p.drawString(70, y-80, f"{order.address.street_address}")
+        p.drawString(70, y-100, f"{order.address.city}, {order.address.state}")
+        p.drawString(70, y-120, f"PIN: {order.address.pin_code}")
+    
+    # Close the PDF object cleanly
+    p.showPage()
+    p.save()
+    
+    # Get the value of the BytesIO buffer and write it to the response
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Create the HTTP response
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="order_{order.id}.pdf"'
+    response.write(pdf)
+    
+    return response
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import RepairRequest
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def accept_repair_request(request, request_id):
+    if request.method == 'POST':
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            # Update the status to 'approved'
+            repair_request.status = 'approved'
+            repair_request.save()
+            
+            messages.success(request, 'Repair request accepted successfully.')
+            return redirect('tech_dashboard')
+        
+        except Exception as e:
+            messages.error(request, f'Error accepting repair request: {str(e)}')
+            return redirect('tech_dashboard')
+    
+    return redirect('tech_dashboard')
+
+@login_required
+def delete_repair_request(request, request_id):
+    if request.method == 'POST':
+        try:
+            repair_request = get_object_or_404(RepairRequest, id=request_id)
+            
+            # Delete the repair request
+            repair_request.delete()
+            
+            messages.success(request, 'Repair request deleted successfully.')
+            return redirect('tech_dashboard')
+        
+        except Exception as e:
+            messages.error(request, f'Error deleting repair request: {str(e)}')
+            return redirect('tech_dashboard')
+    
+    return redirect('tech_dashboard')
+def complete_repair_request(request, request_id):
+    if request.method == 'POST':
+        repair_request = RepairRequest.objects.get(id=request_id)
+        repair_request.status = 'completed'
+        repair_request.save()
+        messages.success(request, 'Repair request has been marked as completed.')
+        return redirect('tech_dashboard')
+
+@login_required
+def user_manage(request):
+    users = User.objects.all()
+    return render(request, 'user_manage.html', {'users': users})
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import DeliveryBoy
+
+def deliveryboy_management(request):
+    deliveryboys = DeliveryBoy.objects.all()
+    return render(request, 'deliveryboy_management.html', {'deliveryboys': deliveryboys})
+
+def add_deliveryboy(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        pin_number = request.POST.get('pin')
+        
+        try:
+            DeliveryBoy.objects.create(
+                name=name,
+                email=email,
+                pin_number=pin_number
+            )
+            messages.success(request, 'Delivery Boy added successfully!')
+            return redirect('deliveryboy_management')
+        except Exception as e:
+            messages.error(request, f'Error adding delivery boy: {str(e)}')
+    
+    return render(request, 'add_deliveryboy.html')   
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import DeliveryBoy
+
+def deliveryboy_management(request):
+    if request.method == 'POST':
+        deliveryboy_id = request.POST.get('deliveryboy_id')
+        if deliveryboy_id:
+            try:
+                deliveryboy = DeliveryBoy.objects.get(id=deliveryboy_id)
+                deliveryboy.delete()
+                messages.success(request, 'Delivery Boy deleted successfully!')
+            except DeliveryBoy.DoesNotExist:
+                messages.error(request, 'Delivery Boy not found!')
+            return redirect('deliveryboy_management')
+
+    deliveryboys = DeliveryBoy.objects.all()
+    return render(request, 'deliveryboy_management.html', {'deliveryboys': deliveryboys})
+
+def add_deliveryboy(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        pin_number = request.POST.get('pin')
+        
+        try:
+            DeliveryBoy.objects.create(
+                name=name,
+                email=email,
+                pin_number=pin_number
+            )
+            messages.success(request, 'Delivery Boy added successfully!')
+            return redirect('deliveryboy_management')
+        except Exception as e:
+            messages.error(request, f'Error adding delivery boy: {str(e)}')
+            return redirect('add_deliveryboy')
+    
+    return render(request, 'add_deliveryboy.html')
+
+def delete_deliveryboy(request, id):
+    try:
+        deliveryboy = DeliveryBoy.objects.get(id=id)
+        deliveryboy.delete()
+        messages.success(request, 'Delivery Boy deleted successfully!')
+    except DeliveryBoy.DoesNotExist:
+        messages.error(request, 'Delivery Boy not found!')
+    return redirect('deliveryboy_management') 
+
+from django.shortcuts import render
+from django.contrib import messages
+from django.core.files.storage import FileSystemStorage
+from .models import Product
+from PIL import Image
+import numpy as np
+from scipy.spatial.distance import cosine
+import os
+
+def image_search(request):
+    print("Image search view called")  # Debug print
+    
+    if request.method == 'POST':
+        print("POST request received")  # Debug print
+        
+        if 'search_image' in request.FILES:
+            try:
+                print("Image file found in request")  # Debug print
+                uploaded_image = request.FILES['search_image']
+                print(f"Uploaded image: {uploaded_image.name}, size: {uploaded_image.size}")  # Debug print
+                
+                # Your image processing code here
+                # ...
+                
+                # For testing, let's just return all products
+                products = Product.objects.all()[:6]  # Get first 6 products
+                print(f"Returning {len(products)} products")  # Debug print
+                
+                return render(request, 'image_search.html', {
+                    'show_results': True,
+                    'products': products,
+                    'title': 'Search Results'
+                })
+                
+            except Exception as e:
+                print(f"Error in image search: {str(e)}")  # Debug print
+                messages.error(request, f'An error occurred: {str(e)}')
+                return render(request, 'image_search.html', {
+                    'title': 'Search by Image',
+                    'error': str(e)
+                })
+        else:
+            print("No image file in request")  # Debug print
+            messages.error(request, 'No image file was uploaded.')
+            
+    # GET request - show search form
+    return render(request, 'image_search.html', {
+        'title': 'Search by Image'
+    })
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order_items = OrderItem.objects.filter(order=order)
+    
+    print(f"Order status: {order.delivery_status}")  # Debug print
+    print(f"Current OTP: {order.delivery_otp}")      # Debug print
+    
+    if order.delivery_status == 'accepted' and not order.delivery_otp:
+        import random
+        order.delivery_otp = str(random.randint(100000, 999999))
+        order.save()
+        print(f"Generated new OTP: {order.delivery_otp}")  # Debug print
+    
+    # Get delivery boy details if assigned
+    delivery_boy = None
+    if order.delivery_boy:
+        delivery_boy = order.delivery_boy
+    
+    context = {
+        'order': order,
+        'order_items': order_items,
+        'delivery_boy': delivery_boy
+    }
+    
+    return render(request, 'order_detail.html', context)
+
+from django.shortcuts import render
+from .models import Product
+from .recommendation_model import ProductRecommender
+
+# Create a global recommender instance
+recommender = ProductRecommender()
+
+def initialize_recommender():
+    try:
+        # Get all products with necessary fields
+        products = Product.objects.all().values(
+            'id', 'name', 'description'
+        )
+        # Initialize the recommender
+        recommender.prepare_data(products)
+    except Exception as e:
+        print(f"Error initializing recommender: {e}")
+
+
+from django.shortcuts import render
+from .utils.image_processor import ImageProcessor
+from .models import Product, ProductImage
+import numpy as np
+
+# Initialize the image processor
+image_processor = ImageProcessor()
+
+def image_search(request):
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        try:
+            uploaded_file = request.FILES['search_image']
+            
+            # First check if the image is of an electronic device
+            is_electronic, confidence, predicted_class = image_processor.is_electronic_device(uploaded_file)
+            
+            if not is_electronic:
+                messages.warning(
+                    request,
+                    f'The uploaded image appears to be of a {predicted_class}, not an electronic device. '
+                    'Please upload an image of an electronic product.'
+                )
+                return render(request, 'image_search.html', {
+                    'show_results': False,
+                    'title': 'Search by Image'
+                })
+            
+            # Reset file pointer after reading
+            uploaded_file.seek(0)
+            
+            # Extract features from uploaded image
+            query_features = image_processor.extract_features(uploaded_file)
+            
+            # Get all products and their features
+            products = Product.objects.all()
+            product_features = []
+            valid_products = []
+            
+            for product in products:
+                try:
+                    features = image_processor.extract_features(product.image.path)
+                    product_features.append(features)
+                    valid_products.append(product)
+                except Exception as e:
+                    logger.error(f"Error processing product {product.id}: {str(e)}")
+                    continue
+            
+            # Find similar products
+            similar_indices = image_processor.find_similar_products(
+                query_features, 
+                product_features
+            )
+            
+            # Get the actual products
+            similar_products = [
+                valid_products[idx] for idx, _ in similar_indices
+            ]
+            
+            if not similar_products:
+                messages.warning(
+                    request, 
+                    'No similar electronic products found in our catalog. Please try with a different image.'
+                )
+                return render(request, 'image_search.html', {'show_results': False})
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'uploaded_image': uploaded_file,
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try again with a different image.')
+            return render(request, 'image_search.html', {'show_results': False})
+    
+    return render(request, 'image_search.html', {'show_results': False})
+
+import logging
+import io
+from PIL import Image
+import torch
+from torchvision import transforms, models
+import numpy as np
+from django.contrib import messages
+from django.shortcuts import render
+from .models import Product
+from scipy.spatial.distance import cosine
+
+logger = logging.getLogger(__name__)
+
+def get_image_features(image):
+    """Extract features from image using ResNet50"""
+    try:
+        # Load pretrained ResNet model
+        model = models.resnet50(pretrained=True)
+        model.eval()
+        
+        # Remove the last fully connected layer
+        feature_extractor = torch.nn.Sequential(*(list(model.children())[:-1]))
+        
+        # Define image transformations
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            )
+        ])
+        
+        # Transform and get features
+        img_tensor = transform(image)
+        img_tensor = img_tensor.unsqueeze(0)  # Add batch dimension
+        
+        with torch.no_grad():
+            features = feature_extractor(img_tensor)
+        
+        return features.numpy().flatten()
+    except Exception as e:
+        logger.error(f"Error extracting features: {str(e)}")
+        raise
+
+def find_similar_products(query_features, threshold=0.8):
+    """Find similar products based on image features"""
+    similar_products = []
+    
+    try:
+        # Get all products
+        products = Product.objects.all()
+        
+        for product in products:
+            try:
+                # Open product image
+                product_image = Image.open(product.image.path)
+                if product_image.mode != 'RGB':
+                    product_image = product_image.convert('RGB')
+                
+                # Get product features
+                product_features = get_image_features(product_image)
+                
+                # Calculate similarity
+                similarity = 1 - cosine(query_features, product_features)
+                
+                # If similarity is above threshold, add to results
+                if similarity > threshold:
+                    similar_products.append((product, similarity))
+                
+            except Exception as e:
+                logger.error(f"Error processing product {product.id}: {str(e)}")
+                continue
+        
+        # Sort by similarity
+        similar_products.sort(key=lambda x: x[1], reverse=True)
+        
+        return [product for product, _ in similar_products[:6]]  # Return top 6 products
+        
+    except Exception as e:
+        logger.error(f"Error finding similar products: {str(e)}")
+        raise
+
+def image_search(request):
+    logger.debug("Image search view called")
+    
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        logger.debug("POST request received with image")
+        try:
+            uploaded_file = request.FILES['search_image']
+            logger.debug(f"Uploaded file type: {type(uploaded_file)}")
+            logger.debug(f"File name: {uploaded_file.name}")
+            
+            # Read the file content and create image
+            image_data = uploaded_file.read()
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Convert to RGB if neededrelated 
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Get image features
+            query_features = get_image_features(image)
+            
+            # Find similar products
+            similar_products = find_similar_products(query_features)
+            
+            if not similar_products:
+                messages.warning(request, 'No similar electronic products found for your image. Please try with a different image.')
+                return render(request, 'image_search.html', {
+                    'title': 'Search by Image',
+                    'show_results': False
+                })
+            
+            # Reset file pointer for template rendering
+            uploaded_file.seek(0)
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'title': 'Search Results',
+                'uploaded_image': uploaded_file
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try with a different image.')
+            return render(request, 'image_search.html', {
+                'title': 'Search by Image',
+                'show_results': False
+            })
+    
+    # GET request
+    return render(request, 'image_search.html', {
+        'title': 'Search by Image',
+        'show_results': False
+    })
+
+from django.shortcuts import render
+from django.contrib import messages
+from .utils.image_processor import ImageProcessor
+from .models import Product
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Initialize the image processor
+image_processor = ImageProcessor()
+
+def image_search(request):
+    if request.method == 'POST' and request.FILES.get('search_image'):
+        try:
+            uploaded_file = request.FILES['search_image']
+            
+            # Extract features from uploaded image
+            query_features = image_processor.extract_features(uploaded_file)
+            
+            # Get all products and their features
+            products = Product.objects.all()
+            product_features = []
+            valid_products = []
+            
+            for product in products:
+                try:
+                    features = image_processor.extract_features(product.image.path)
+                    product_features.append(features)
+                    valid_products.append(product)
+                except Exception as e:
+                    logger.error(f"Error processing product {product.id}: {str(e)}")
+                    continue
+            
+            # Find similar products
+            similar_indices = image_processor.find_similar_products(
+                query_features, 
+                product_features
+            )
+            
+            # Get the actual products
+            similar_products = [
+                valid_products[idx] for idx, _ in similar_indices
+            ]
+            
+            if not similar_products:
+                messages.warning(
+                    request, 
+                    'No similar electronic products found. Please try with a different image.'
+                )
+                return render(request, 'image_search.html', {'show_results': False})
+            
+            context = {
+                'show_results': True,
+                'products': similar_products,
+                'uploaded_image': uploaded_file,
+            }
+            
+            return render(request, 'image_search.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error in image search: {str(e)}", exc_info=True)
+            messages.error(request, 'Error processing image. Please try again.')
+            return render(request, 'image_search.html', {'show_results': False})
+    
+    return render(request, 'image_search.html', {'show_results': False})
+
+
+def product_recommendations(request):
+    categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        selected_category = request.POST.get('category')
+        try:
+            preferences = {
+                'category': selected_category,
+                'min_price': request.POST.get('min_price'),
+                'max_price': request.POST.get('max_price'),
+                'specifications': request.POST.get('specifications')
+            }
+
+            # Get AI recommendations
+            ai_recommendations = gemini_recommender.get_recommendations(preferences)
+            
+            # Debug print
+            print("AI Recommendations:", ai_recommendations)
+
+            context = {
+                'categories': categories,
+                'ai_recommendations': ai_recommendations,
+                'selected_category': selected_category,  # Make sure this is included
+                'min_price': preferences['min_price'],
+                'max_price': preferences['max_price'],
+                'specifications': preferences['specifications'],
+                'show_results': True
+            }
+
+            return render(request, 'product_recommendations.html', context)
+
+        except Exception as e:
+            print(f"Error in view: {str(e)}")  # Debug print
+            messages.error(request, f'Error getting recommendations: {str(e)}')
+            return render(request, 'product_recommendations.html', {
+                'categories': categories,
+                'show_results': False,
+                'error': str(e)
+            })
+
+    # Initial GET request
+    context = {
+        'categories': categories,
+        'show_results': False
+    }
+    return render(request, 'product_recommendations.html', context)
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import Product, Category
+from django.db.models import Q
+import google.generativeai as genai
+from django.conf import settings
+
+# Configure Gemini with the correct API key
+# GEMINI_API_KEY = "AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc"  # Replace with your valid API key
+GEMINI_API_KEY = 'AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU'
+genai.configure(api_key=GEMINI_API_KEY)
+
+class GeminiRecommender:
+    def __init__(self):
+        try:
+            # Update to use gemini-2.0-flash instead of gemini-pro
+            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            print("Gemini model initialized successfully")
+        except Exception as e:
+            print(f"Error initializing Gemini model: {str(e)}")
+            self.model = None
+
+    def get_recommendations(self, preferences):
+        if not self.model:
+            print("Model not initialized properly")
+            return []
+            
+        try:
+            prompt = self._construct_prompt(preferences)
+            
+            # Generate content with safety settings
+            generation_config = {
+                "temperature": 0.7,
+                "top_p": 1,
+                "top_k": 1,
+                "max_output_tokens": 2048,
+            }
+
+            response = self.model.generate_content(prompt)
+            
+            # Debug print
+            print("Raw Gemini Response:", response.text)
+            
+            return self._process_response(response.text)
+            
+        except Exception as e:
+            print(f"Error in Gemini recommendation: {str(e)}")
+            return []
+
+    def _construct_prompt(self, preferences):
+        category = preferences.get('category', 'Any')
+        min_price = preferences.get('min_price', '0')
+        max_price = preferences.get('max_price', 'Any')
+        specs = preferences.get('specifications', 'None specified')
+
+        prompt = f"""
+        Act as an electronics product expert. Recommend 3 products based on:
+        - Category: {category}
+        - Budget: ₹{min_price} - ₹{max_price}
+        - Specifications: {specs}
+
+        For each product, provide:
+        1. Name
+        2. Key features
+        3. Price in ₹
+        4. Why it's recommended
+
+        Format each recommendation exactly like this:
+        1. Product Name | Features | ₹Price | Reason
+        2. Product Name | Features | ₹Price | Reason
+        3. Product Name | Features | ₹Price | Reason
+
+        Keep prices realistic and current.
+        """
+        return prompt
+
+    def _process_response(self, response_text):
+        try:
+            recommendations = []
+            lines = [line.strip() for line in response_text.split('\n') if line.strip()]
+            
+            for line in lines:
+                if line[0].isdigit() and '|' in line:
+                    parts = [part.strip() for part in line.split('|')]
+                    if len(parts) >= 3:
+                        rec = {
+                            'name': parts[0].split('.')[1].strip() if '.' in parts[0] else parts[0],
+                            'features': parts[1].strip(),
+                            'price': parts[2].strip(),
+                            'reason': parts[3].strip() if len(parts) > 3 else 'Recommended based on preferences'
+                        }
+                        recommendations.append(rec)
+            
+            return recommendations
+        except Exception as e:
+            print(f"Error processing response: {str(e)}")
+            return []
+
+# Initialize the recommender
+gemini_recommender = GeminiRecommender()
+def product_recommendations(request):
+    categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        selected_category = request.POST.get('category')
+        try:
+            preferences = {
+                'category': selected_category,
+                'min_price': request.POST.get('min_price'),
+                'max_price': request.POST.get('max_price'),
+                'specifications': request.POST.get('specifications')
+            }
+
+            # Get AI recommendations
+            ai_recommendations = gemini_recommender.get_recommendations(preferences)
+            
+            # Debug print
+            print("AI Recommendations:", ai_recommendations)
+
+            context = {
+                'categories': categories,
+                'ai_recommendations': ai_recommendations,
+                'selected_category': selected_category,  # Make sure this is included
+                'min_price': preferences['min_price'],
+                'max_price': preferences['max_price'],
+                'specifications': preferences['specifications'],
+                'show_results': True
+            }
+
+            return render(request, 'product_recommendations.html', context)
+
+        except Exception as e:
+            print(f"Error in view: {str(e)}")  # Debug print
+            messages.error(request, f'Error getting recommendations: {str(e)}')
+            return render(request, 'product_recommendations.html', {
+                'categories': categories,
+                'show_results': False,
+                'error': str(e)
+            })
+
+    # Initial GET request
+    context = {
+        'categories': categories,
+        'show_results': False
+    }
+    return render(request, 'product_recommendations.html', context)
+
+def get_similar_products(request, category_name):
+    try:
+        # Get the category
+        category = Category.objects.get(name=category_name)
+        
+        # Get products from the same category
+        similar_products = Product.objects.filter(
+            category=category
+        ).order_by('?')[:6]  # Get 6 random products from the category
+        
+        context = {
+            'similar_products': similar_products,
+            'category_name': category_name
+        }
+        
+        return render(request, 'similar_products.html', context)
+    except Category.DoesNotExist:
+        messages.error(request, f'Category {category_name} not found.')
+        return redirect('product_recommendations')
+    except Exception as e:
+        print(f"Error in get_similar_products: {str(e)}")
+        messages.error(request, 'An error occurred while fetching similar products.')
+        return redirect('product_recommendations')
+
+import logging
+from django.shortcuts import render
+from .models import Product
+
+logger = logging.getLogger(__name__)
+
+def similar_products_view(request, category_name):
+    try:
+        similar_products = Product.objects.filter(category__name=category_name)  # Adjust as necessary
+        return render(request, 'similar_products.html', {'similar_products': similar_products, 'category_name': category_name})
+    except Exception as e:
+        logger.error(f"Error fetching similar products: {e}")
+        return render(request, 'similar_products.html', {'error': 'An error occurred while fetching similar products.'})
+        
+from django.shortcuts import render, get_object_or_404
+from .models import Product
+import pandas as pd
+
+def purchase_probability_view(request, product_id):
+    # Get the product
+    product = get_object_or_404(Product, id=product_id)
+    
+    # Load the purchase probability dataset
+    dataset_path = os.path.join(os.path.dirname(__file__), 'datasets', 'purchase_probability_dataset.csv')
+    
+    try:
+        df = pd.read_csv(dataset_path)
+        # Get the row for this product
+        product_data = df[df['product_id'] == product_id].iloc[0]
+        
+        stats = {
+            'wishlist_count': int(product_data['wishlist_count']),
+            'cart_count': int(product_data['cart_count']),
+            'order_count': int(product_data['order_count']),
+            'recent_orders': int(product_data['recent_orders']),
+            'category_order_count': int(product_data['category_order_count']),
+            'price_factor': round(float(product_data['price_factor']), 2)
+        }
+        
+        probability = float(product_data['purchase_probability'])
+        
+    except Exception as e:
+        # If there's any error, provide default values
+        stats = {
+            'wishlist_count': 0,
+            'cart_count': 0,
+            'order_count': 0,
+            'recent_orders': 0,
+            'category_order_count': 0,
+            'price_factor': 1.0
+        }
+        probability = 15.0  # Base probability
+        
+    context = {
+        'product': product,
+        'stats': stats,
+        'probability': probability
+    }
+    
+    return render(request, 'purchase_probability.html', context)
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
+
+@login_required
+def submit_order_feedback(request, order_id):
+    if request.method == 'POST':
+        try:
+            order = get_object_or_404(Order, id=order_id, user=request.user)
+            
+            # Check if feedback exists
+            try:
+                if hasattr(order, 'feedback') and order.feedback:
+                    messages.error(request, 'Feedback already submitted for this order.')
+                    return redirect('profile')
+            except Order.feedback.RelatedObjectDoesNotExist:
+                pass  # No feedback exists, continue with submission
+            
+            rating = request.POST.get('rating')
+            comment = request.POST.get('comment')
+            
+            # Validate the data
+            if not rating or not comment:
+                messages.error(request, 'Both rating and comment are required.')
+                return redirect('profile_reviewpage') + f'?order_id={order_id}'
+            
+            # Create feedback
+            OrderFeedback.objects.create(
+                order=order,
+                rating=int(rating),
+                comment=comment.strip()
+            )
+            
+            messages.success(request, 'Thank you for your feedback!')
+            return redirect('profile')
+            
+        except Exception as e:
+            print(f"Error submitting feedback: {str(e)}")  # For debugging
+            messages.error(request, 'An error occurred while submitting feedback.')
+            return redirect('profile_reviewpage') + f'?order_id={order_id}'
+    
+    return redirect('profile')
+
+# @login_required
+# def profile(request):
+#     # Get recent orders with delivery status
+#     recent_orders = Order.objects.filter(
+#         user=request.user
+#     ).order_by('-created_at')[:5]  # Get last 5 orders
+    
+#     # Get completed orders for feedback section
+#     completed_orders = Order.objects.filter(
+#         user=request.user,
+#         status='Completed'
+#     ).order_by('-created_at')
+    
+#     context = {
+#         'user': request.user,
+#         'recent_orders': recent_orders,
+#         'completed_orders': completed_orders,
+#         'orders_count': recent_orders.count(),
+#         'wishlist_count': Wishlist.objects.filter(user=request.user).count(),
+#         'reviews_count': OrderFeedback.objects.filter(order__user=request.user).count(),
+#     }
+    
+#     return render(request, 'profile.html', context)
+def profile_reviewpage(request):
+    order_id = request.GET.get('order_id')
+    if not order_id:
+        messages.error(request, 'No order specified')
+        return redirect('profile')
+    
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+        
+        # Check if feedback exists using hasattr instead of directly accessing
+        try:
+            if hasattr(order, 'feedback') and order.feedback:
+                messages.warning(request, 'This order has already been reviewed')
+                return redirect('profile')
+        except Order.feedback.RelatedObjectDoesNotExist:
+            # This means there's no feedback, which is what we want
+            pass
+            
+        context = {
+            'order': order
+        }
+        return render(request, 'profile_reviewpage.html', context)
+        
+    except Order.DoesNotExist:
+        messages.error(request, 'Order not found')
+        return redirect('profile')
+
+# views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Product, ProductFeedback
+
+@login_required
+def add_feedback(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    if request.method == 'POST':
+        feedback_text = request.POST.get('feedback')
+        if feedback_text:
+            ProductFeedback.objects.create(
+                product=product,
+                user=request.user,
+                feedback=feedback_text
+            )
+            messages.success(request, 'Thank you for your feedback!')
+        else:
+            messages.error(request, 'Please enter your feedback.')
+    return redirect('product_detail', product_id=product_id)
+
+# from django.shortcuts import render, redirect
+# from django.contrib.auth.decorators import login_required, user_passes_test
+# from .models import Product, Category
+# from django.db.models import Sum  # Import Sum directly from django.db.models
+
+# @login_required
+# @user_passes_test(lambda u: u.is_superuser)
+# def inventory_management(request):
+#     # Get statistics for the inventory dashboard
+#     total_products = Product.objects.count()
+#     total_stock = Product.objects.aggregate(total=Sum('stock'))['total'] or 0  # Use Sum directly
+#     total_categories = Category.objects.count()
+    
+#     # Define low stock threshold (e.g., less than 10 items)
+#     low_stock_threshold = 10
+#     low_stock_count = Product.objects.filter(stock__lt=low_stock_threshold).count()
+    
+#     context = {
+#         'total_products': total_products,
+#         'total_stock': total_stock,
+#         'total_categories': total_categories,
+#         'low_stock_count': low_stock_count,
+#     }
+    
+#     return render(request, 'inventory_management.html', context)from django.shortcuts import render
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Sum
+from .models import Product, Category
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def inventory_management(request):
+    # Get all products with their categories
+    products = Product.objects.all().select_related('category')
+    
+    # Add print statement for debugging
+    print(f"Number of products: {products.count()}")
+    
+    # Basic statistics
+    total_products = products.count()
+    total_stock = products.aggregate(total=Sum('stock'))['total'] or 0
+    total_categories = Category.objects.count()
+    low_stock_threshold = 10
+    low_stock_count = products.filter(stock__lt=low_stock_threshold).count()
+        
+    context = {
+        'products': products,
+        'total_products': total_products,
+        'total_stock': total_stock,
+        'total_categories': total_categories,
+        'low_stock_count': low_stock_count,
+    }
+    
+    # Add print statement for debugging context
+    print("Context:", context)
+    
+    return render(request, 'inventory_management.html', context)
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Product, ProductFeedback
+from .utils.sentiment_analyzer import SentimentAnalyzer
+from django.contrib import messages
+from django.http import JsonResponse
+
+@login_required
+def submit_feedback(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    if request.method == 'POST':
+        feedback_text = request.POST.get('feedback')
+        rating = request.POST.get('rating')
+        if feedback_text and rating:
+            try:
+                rating = int(rating)
+                feedback = ProductFeedback.objects.create(product=product, user=request.user, feedback=feedback_text, rating=rating)
+                from django.db.models import Avg
+                feedbacks = ProductFeedback.objects.filter(product=product)
+                positive_count = feedbacks.filter(rating__in=[4, 5]).count()
+                neutral_count = feedbacks.filter(rating__in=[2, 3]).count()
+                negative_count = feedbacks.filter(rating=1).count()
+                avg_rating = feedbacks.aggregate(Avg('rating'))['rating__avg']
+                avg_rating = round(avg_rating, 1) if avg_rating else 0
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Feedback submitted successfully!',
+                        'positive_count': positive_count,
+                        'neutral_count': neutral_count,
+                        'negative_count': negative_count,
+                        'average_rating': str(avg_rating),
+                        'feedback_id': feedback.id,
+                        'username': request.user.username,
+                        'date': feedback.created_at.strftime('%B %d, %Y'),
+                        'rating': rating,
+                        'feedback': feedback_text
+                    })
+            except ValueError:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'message': 'Invalid rating value'})
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Please provide both feedback and rating'})
+    return redirect('product_detail', id=product_id)
+
+def product_sentiment_analysis(request, product_id):
+    product = Product.objects.get(id=product_id)
+    feedbacks = ProductFeedback.objects.filter(product=product)
+
+    # Calculate sentiment statistics
+    sentiment_stats = {
+        'positive': feedbacks.filter(sentiment_label='positive').count(),
+        'neutral': feedbacks.filter(sentiment_label='neutral').count(),
+        'negative': feedbacks.filter(sentiment_label='negative').count(),
+        'average_score': feedbacks.aggregate(Avg('sentiment_score'))['sentiment_score__avg']
+    }
+    
+    context = {
+        'product': product,
+        'feedbacks': feedbacks,
+        'sentiment_stats': sentiment_stats
+    }
+
+    return render(request, 'product_sentiment_analysis.html', context)
+
+def product_sentiment_analysis(request, product_id):
+    product = Product.objects.get(id=product_id)
+    feedbacks = ProductFeedback.objects.filter(product=product)
+
+    # Calculate sentiment statistics
+    sentiment_stats = {
+        'positive': feedbacks.filter(sentiment_label='positive').count(),
+        'neutral': feedbacks.filter(sentiment_label='neutral').count(),
+        'negative': feedbacks.filter(sentiment_label='negative').count(),
+        'average_score': feedbacks.aggregate(Avg('sentiment_score'))['sentiment_score__avg']
+    }
+    
+    context = {
+            'product': product,
+        'feedbacks': feedbacks,
+        'sentiment_stats': sentiment_stats
+    }
+
+    return render(request, 'product_sentiment_analysis.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Avg  # Add this import
+from .models import Product, ProductFeedback, Rating
+from .utils.sentiment_analyzer import SentimentAnalyzer
+
+def product_detail(request, id):
+    product = get_object_or_404(Product, id=id)
+    feedbacks = ProductFeedback.objects.filter(product=product).order_by('-created_at')
+    
+    # Get all feedbacks with their sentiment labels
+    positive_feedbacks = feedbacks.filter(rating__in=[4, 5])
+    neutral_feedbacks = feedbacks.filter(rating__in=[2, 3])
+    negative_feedbacks = feedbacks.filter(rating=1)
+    
+    # Calculate sentiment counts based on rating values
+    positive_count = positive_feedbacks.count()
+    neutral_count = neutral_feedbacks.count()
+    negative_count = negative_feedbacks.count()
+    
+    # Calculate average rating from ProductFeedback
+    average_rating = feedbacks.aggregate(Avg('rating'))['rating__avg']
+    if average_rating is None:
+        average_rating = 0
+    else:
+        average_rating = round(average_rating, 1)
+    
+    # Get user rating if it exists
+    user_rating = None
+    if request.user.is_authenticated:
+        try:
+            user_rating = Rating.objects.get(user=request.user, product=product)
+        except Rating.DoesNotExist:
+            pass
+    
+    # Create context dictionary
+    context = {
+        'product': product,
+        'feedbacks': feedbacks,
+        'positive_feedbacks': positive_feedbacks,
+        'neutral_feedbacks': neutral_feedbacks,
+        'negative_feedbacks': negative_feedbacks,
+        'user_rating': user_rating,
+        'recommended_products': Product.objects.filter(category=product.category).exclude(id=id)[:4],
+        'positive_count': positive_count,
+        'neutral_count': neutral_count,
+        'negative_count': negative_count,
+        'average_rating': average_rating
+    }
+    
+    return render(request, 'product_detail.html', context)
+
+def update_stock(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    
+    if request.method == 'POST':
+        try:
+            stock_change = int(request.POST.get('stock_change', 0))
+            new_stock = product.stock + stock_change
+            
+            if new_stock < 0:
+                messages.error(request, "Stock cannot be negative!")
+                return render(request, 'update_stock.html', {'product': product})
+            
+            product.stock = new_stock
+            product.save()
+            messages.success(request, f"Stock successfully updated to {new_stock}")
+            return redirect('inventory_management')
+            
+        except ValueError:
+            messages.error(request, "Please enter a valid number")
+    
+    return render(request, 'update_stock.html', {'product': product})
+
+# ... existing imports ...
+from .utils.product_summarizer import ProductSummarizer
+
+# Initialize the summarizer
+product_summarizer = ProductSummarizer()
+
+def similar_products_view(request, category_name):
+    try:
+        # Get price range from query parameters (if coming from recommendations page)
+        min_price = request.GET.get('min_price')
+        max_price = request.GET.get('max_price')
+        
+        # Convert to float if not None
+        min_price_float = float(min_price) if min_price else None
+        max_price_float = float(max_price) if max_price else None
+        
+        # Get products from the category
+        similar_products = Product.objects.filter(category__name=category_name)
+        
+        # Apply price filters if provided
+        if min_price_float is not None:
+            similar_products = similar_products.filter(price__gte=min_price_float)
+        if max_price_float is not None:
+            similar_products = similar_products.filter(price__lte=max_price_float)
+        
+        # Generate product summary using Gemini
+        product_summary = product_summarizer.generate_summary(
+            similar_products, 
+            min_price=min_price, 
+            max_price=max_price,
+            category_name=category_name
+        )
+            
+        context = {
+            'similar_products': similar_products,
+            'category_name': category_name,
+            'product_summary': product_summary,
+            'min_price': min_price,
+            'max_price': max_price,
+            'show_summary': product_summary is not None and similar_products.count() >= 2
+        }
+        
+        return render(request, 'similar_products.html', context)
+    
+    except Exception as e:
+        logger.error(f"Error fetching similar products: {e}", exc_info=True)
+        return render(request, 'similar_products.html', {
+            'error': 'An error occurred while fetching similar products.',
+            'category_name': category_name
+        })

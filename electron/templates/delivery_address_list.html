@@ -65,7 +65,7 @@
             <button type="submit" class="btn btn-success">Select Address and Proceed</button>
         </div>
     </form> {% endcomment %}
-    <form method="POST" action="{% url 'confirm_order' %}">
+    <form method="POST" action="">
         {% csrf_token %}
         <h2>Select Delivery Address</h2>
         

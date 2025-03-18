@@ -1,7 +1,8 @@
 import os
 
 # Gemini API Configuration
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+# GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU')
 GEMINI_MODEL = 'gemini-pro'  # This is the correct model name
 
 # Generation Settings

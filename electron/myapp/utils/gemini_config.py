@@ -3,7 +3,8 @@ import google.generativeai as genai
 
 def initialize_gemini():
     # Get API key from environment variable or use a default one
-    api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+    # api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyBLSAPqtZQ4KhCTNP9zkM2Dke9giqwhENc')
+    api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyApyXt0Voap0SOj2C6Y1SE7CMniT1xuKLU')
     
     try:
         # Configure the Gemini API
